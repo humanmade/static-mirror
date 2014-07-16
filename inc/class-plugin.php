@@ -57,7 +57,23 @@ class Plugin {
 	 * @return Array
 	 */
 	public function get_mirrors() {
-		return get_option( 'static_mirror_mirrors', array() );
+
+		$mirrors = get_posts( array(
+			'post_type' => 'static-mirror',
+			'showposts' => -1,
+			'post_status' => 'private'
+		) );
+
+		$wp_upload_dir = wp_upload_dir();
+
+		return array_map( function( $post ) use ( $wp_upload_dir ) {
+			return array(
+				'dir' => get_post_meta( $post->ID, '_dir', true ),
+				'date' => strtotime( $post->post_date_gmt ),
+				'changelog' => get_post_meta( $post->ID, '_changelog', true ),
+				'url' => $wp_upload_dir['baseurl'] . get_post_meta( $post->ID, '_dir_rel', true )
+			);
+		}, $mirrors );
 	}
 
 	/**
@@ -68,6 +84,8 @@ class Plugin {
 	 * 
 	 */
 	public function setup_trigger_hooks() {
+
+		$this->register_post_type();
 
 		add_action( 'save_post', function( $post_id, $post, $update ) {
 
@@ -108,8 +126,6 @@ class Plugin {
 				return;
 			}
 
-			error_log( print_r($terms, true));
-
 			$this->queue_mirror( sprintf( 
 				'The %s %s was assigned the %s %s.',
 				$post_type_object->labels->singular_name,
@@ -119,6 +135,20 @@ class Plugin {
 			) );
 
 		}, 10, 6 );
+	}
+
+	protected function register_post_type() {
+		$labels = array(
+			'not_found'           => 'Not found',
+			'not_found_in_trash'  => 'Not found in Trash',
+		);
+		$args = array(
+			'labels'              => $labels,
+			'supports'            => array( ),
+			'public'              => false,
+			'show_ui'             => false,
+		);
+		register_post_type( 'static-mirror', $args );
 	}
 
 	/**
@@ -173,18 +203,27 @@ class Plugin {
 			return $status;
 		}
 
-		//save the changelog in a file too
-		file_put_contents( $destination . 'changelog.txt', implode( "\n", $changelog ) );
+		// make an index page
+		$files = array_diff( scandir( $destination), array( '..', '.' ) );
 
-		$mirror = array(
-			'dir' => $destination,
-			'date' => time(),
-			'changelog' => $changelog
-		);
+		ob_start();
 
-		$mirrors = $this->get_mirrors();
-		$mirrors[] = $mirror;
+		include dirname( __FILE__ ) . '/template-index.php';
 
-		update_option( 'static_mirror_mirrors', $mirrors );
+		file_put_contents( $destination . 'index.html', ob_get_clean() );
+
+		$post_id = wp_insert_post( array(
+			'post_type' => 'static-mirror',
+			'post_title' => date( 'c' ),
+			'post_status' => 'private'
+		) );
+
+		$uploads_dir = wp_upload_dir();
+
+		update_post_meta( $post_id, '_changelog', $changelog );
+		update_post_meta( $post_id, '_dir', $destination );
+		update_post_meta( $post_id, '_dir_rel', str_replace( $uploads_dir['basedir'], '', $destination ) );
+
+		return $uploads_dir['basedir'] . '/mirrors';
 	}
 }
