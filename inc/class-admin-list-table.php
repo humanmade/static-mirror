@@ -80,7 +80,7 @@ class List_Table extends \WP_Posts_List_Table {
 		$this->display_tablenav( 'bottom' );
 	}
 
-	protected function bulk_actions() {
+	public function bulk_actions() {
 
 	}
 
@@ -102,7 +102,7 @@ class List_Table extends \WP_Posts_List_Table {
 	 *
 	 * @return array
 	 */
-	protected function get_column_info() {
+	public function get_column_info() {
 
 		$columns = array( 
 			'info' => 'Snapshot',
@@ -142,7 +142,7 @@ class List_Table extends \WP_Posts_List_Table {
 			$h_time = mysql2date( __( 'Y/m/d' ), $m_time );
 
 		/** This filter is documented in wp-admin/includes/class-wp-posts-list-table.php */
-		echo '<abbr title="' . $t_time . '">' . apply_filters( 'post_date_column_time', $h_time, $post, $column_name, $mode ) . '</abbr>';
+		echo '<abbr title="' . $t_time . '">' . $h_time . '</abbr>';
 	}
 
 	protected function column_changelog( $post ) {
@@ -158,7 +158,7 @@ class List_Table extends \WP_Posts_List_Table {
 	 *
 	 * @param object $item The current item
 	 */
-	public function single_row( $item ) {
+	public function single_row( $item, $level = 0 ) {
 		static $row_class = '';
 		$row_class = ( $row_class == '' ? ' class="alternate"' : '' );
 
@@ -175,7 +175,7 @@ class List_Table extends \WP_Posts_List_Table {
 	 *
 	 * @param object $item The current item
 	 */
-	protected function single_row_columns( $item ) {
+	public function single_row_columns( $item ) {
 		list( $columns, $hidden ) = $this->get_column_info();
 
 		foreach ( $columns as $column_name => $column_display_name ) {

@@ -7,7 +7,7 @@ class Admin {
 
 	static $instance;
 
-	public function get_instance() {
+	public static function get_instance() {
 
 		if ( ! self::$instance ) {
 			$class = get_called_class();
