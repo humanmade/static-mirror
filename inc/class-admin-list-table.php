@@ -119,7 +119,7 @@ class List_Table extends \WP_Posts_List_Table {
 
 		$wp_upload_dir = wp_upload_dir();
 
-		$permalink = $wp_upload_dir['baseurl'] . get_post_meta( $post->ID, '_dir_rel', true );
+		$permalink = $wp_upload_dir['baseurl'] . get_post_meta( $post->ID, '_dir_rel', true ) . 'index.html';
 		?>
 		<strong><a href="<?php echo esc_url( $permalink ) ?>"><?php echo esc_html( $post->post_title ) ?></a></strong>
 		<?php

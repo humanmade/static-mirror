@@ -9,7 +9,7 @@
 		<ul>
 			<?php foreach ( $files as $file ) : ?>
 				<li>
-					<a href="<?php echo esc_attr( $file ) ?>"><?php echo esc_html( $file ) ?></a>
+					<a href="<?php echo esc_attr( $file ) ?>/index.html"><?php echo esc_html( $file ) ?></a>
 				</li>
 			<?php endforeach ?>
 		</ul>
