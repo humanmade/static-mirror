@@ -28,7 +28,7 @@ class Plugin {
 	 * @return Array
 	 */
 	public function get_base_urls() {
-		return apply_filters( 'static_mirror_base_urls', get_option( 'static_mirror_base_urls', array( get_option( 'siteurl' ) ) ) );
+		return get_option( 'static_mirror_base_urls', array( get_option( 'siteurl' ) ) );
 	}
 
 	/**
