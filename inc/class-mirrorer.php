@@ -24,7 +24,8 @@ class Mirrorer {
 		foreach ( $urls as $url ) {
 
 			$cmd = sprintf( 
-				'wget -nc -p -k -r -erobots=off --restrict-file-names=windows --html-extension -P %s %s',
+				'wget --user-agent="%s" -nc -p -k -r -erobots=off --restrict-file-names=windows --html-extension -P %s %s',
+				'WordPress/Static-Mirror; ' . get_bloginfo( 'url' ),
 				escapeshellarg( $temp_destination ),
 				escapeshellarg( esc_url_raw( $url ) )
 			);
