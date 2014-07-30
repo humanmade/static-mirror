@@ -104,10 +104,10 @@ class List_Table extends \WP_Posts_List_Table {
 	 */
 	public function get_column_info() {
 
-		$columns = array( 
-			'info' => 'Snapshot',
+		$columns = array(
+			'date' => 'Date',
 			'changelog' => 'Changelog',
-			'date' => 'Date'
+			'info' => 'Snapshot',
 		);
 
 		$this->_column_headers = array( $columns, array(), array() );
@@ -122,10 +122,8 @@ class List_Table extends \WP_Posts_List_Table {
 		$permalink = $wp_upload_dir['baseurl'] . get_post_meta( $post->ID, '_dir_rel', true ) . 'index.html';
 		?>
 		<strong><a href="<?php echo esc_url( $permalink ) ?>"><?php echo esc_html( $post->post_title ) ?></a></strong>
+
 		<?php
-		echo $this->row_actions( array(
-			'view' => '<a href="' . esc_url( $permalink ) . '">View</a>'
-		) );
 	}
 
 	protected function column_date( $post ) {
@@ -143,6 +141,13 @@ class List_Table extends \WP_Posts_List_Table {
 
 		/** This filter is documented in wp-admin/includes/class-wp-posts-list-table.php */
 		echo '<abbr title="' . $t_time . '">' . $h_time . '</abbr>';
+
+		$wp_upload_dir = wp_upload_dir();
+		$permalink = $wp_upload_dir['baseurl'] . get_post_meta( $post->ID, '_dir_rel', true ) . 'index.html';
+		echo $this->row_actions( array(
+			'view' => '<a href="' . esc_url( $permalink ) . '">View</a>'
+		) );
+
 	}
 
 	protected function column_changelog( $post ) {
