@@ -134,10 +134,12 @@ class List_Table extends \WP_Posts_List_Table {
 
 		$time_diff = time() - $time;
 
-		if ( $time_diff > 0 && $time_diff < DAY_IN_SECONDS )
+		if ( $time_diff > 0 && $time_diff < DAY_IN_SECONDS ) {
 			$h_time = sprintf( __( '%s ago' ), human_time_diff( $time ) );
-		else
-			$h_time = mysql2date( __( 'Y/m/d' ), $m_time );
+		} else {
+			$date_format = get_option( 'date_format', 'Y/m/d' ) . ' @ ' . get_option( 'time_format', 'H:i' );
+			$h_time = mysql2date( __( $date_format ), $m_time );
+		}
 
 		/** This filter is documented in wp-admin/includes/class-wp-posts-list-table.php */
 		echo '<abbr title="' . $t_time . '">' . $h_time . '</abbr>';
