@@ -80,8 +80,7 @@ class List_Table extends \WP_Posts_List_Table {
 		$this->display_tablenav( 'bottom' );
 	}
 
-	public function bulk_actions() {
-
+	public function bulk_actions( $which = '' ) {
 	}
 
 	/**
