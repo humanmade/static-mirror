@@ -63,7 +63,7 @@ class Mirrorer {
 
 				self::move_directory( $source . '/' . $file, $dest . '/' . $file );
 			} else {
-				if ( ! copy( $source . '/' . $file, $dest . '/' . $file ) ) {
+				if ( ! @copy( $source . '/' . $file, $dest . '/' . $file ) ) {
 
 				}
 				unlink( $source . '/' . $file );
