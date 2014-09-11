@@ -17,7 +17,7 @@ class Mirrorer {
 			return new WP_Error( 'dependancies-not-met', 'You do not have the necessary dependancies to run a mirror.' );
 		}
 
-		$temp_destination = sys_get_temp_dir() . '/' . 'static-mirrir-' . rand( 0,99999 );
+		$temp_destination = sys_get_temp_dir() . '/' . 'static-mirror-' . rand( 0,99999 );
 
 		wp_mkdir_p( $destination );
 
