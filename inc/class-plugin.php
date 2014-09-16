@@ -28,7 +28,7 @@ class Plugin {
 	 * @return Array
 	 */
 	public function get_base_urls() {
-		return get_option( 'static_mirror_base_urls', array( get_option( 'siteurl' ) ) );
+		return get_option( 'static_mirror_base_urls', array( home_url() ) );
 	}
 
 	/**
@@ -186,6 +186,7 @@ class Plugin {
 
 		if ( is_wp_error( $status ) ) {
 			update_option( 'static_mirror_last_error', $status->get_error_message() );
+			trigger_error( $status->get_error_code() . ': ' . $status->get_error_message(), E_USER_WARNING );
 			return;
 		}
 
