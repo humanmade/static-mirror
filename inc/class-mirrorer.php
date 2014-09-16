@@ -2,6 +2,8 @@
 
 namespace Static_Mirror;
 
+use WP_Error;
+
 class Mirrorer {
 
 	/**
@@ -24,13 +26,20 @@ class Mirrorer {
 		foreach ( $urls as $url ) {
 
 			$cmd = sprintf( 
-				'wget --user-agent="%s" -nc -p -k -r -erobots=off --restrict-file-names=windows --html-extension -P %s %s',
+				'wget --user-agent="%s" -nc -p -k -r -erobots=off --restrict-file-names=windows --html-extension -P %s %s 2>&1',
 				'WordPress/Static-Mirror; ' . get_bloginfo( 'url' ),
 				escapeshellarg( $temp_destination ),
 				escapeshellarg( esc_url_raw( $url ) )
 			);
 
-			shell_exec( $cmd );
+			$data = shell_exec( $cmd );
+
+			// we can infer the command fialed if hte temp dir does not exist
+			if ( ! is_dir( $temp_destination ) ) {
+
+				return new WP_Error( 'static-mirrir.create.wget-command-error', 'wget command failed to return any data (cmd: ' . $cmd . ', data: ' . $data . ')' );
+			}
+
 		}
 
 		static::move_directory( untrailingslashit( $temp_destination ), untrailingslashit( $destination ) );
