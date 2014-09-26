@@ -85,6 +85,11 @@ class Plugin {
 	 */
 	public function setup_trigger_hooks() {
 
+		// don't trigger the hooks if the request is from a static mirrir happening
+		if ( ! empty( $_SERVER['HTTP_USER_AGENT'] ) && strpos( $_SERVER['HTTP_USER_AGENT'], 'WordPress/Static-Mirror' ) !== false ) {
+			return;
+		}
+
 		$this->register_post_type();
 
 		add_action( 'save_post', function( $post_id, $post, $update ) {
