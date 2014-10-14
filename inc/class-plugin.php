@@ -166,12 +166,14 @@ class Plugin {
 	 */
 	public function queue_mirror( $changelog ) {
 
-		if ( ! $this->queued ) {
-			add_action( 'shutdown', array( $this, 'mirror_on_shutdown' ) );
-		}
+		// we queue one to happen in 5 minutes, if one is already queued, we push that back 
+		$next_queue_changelog   = get_option( 'static_mirror_next_changelog', array() );
+		$next_queue_changelog[] = $changelog;
 
-		$this->queued = true;
-		$this->changelog[] = $changelog;
+		update_option( 'static_mirror_next_changelog', $next_queue_changelog );
+
+		wp_clear_scheduled_hook( 'static_mirror_create_mirror' );
+		wp_schedule_single_event( strtotime( '+1 minutes' ), 'static_mirror_create_mirror' );
 	}
 
 	/**
@@ -198,9 +200,29 @@ class Plugin {
 		delete_option( 'static_mirror_last_error' );
 	}
 
+	public function mirror_on_cron() {
+
+		$changelog = get_option( 'static_mirror_next_changelog', array() );
+		delete_option( 'static_mirror_next_changelog' );
+
+		$status = $this->mirror( $changelog );
+
+		if ( is_wp_error( $status ) ) {
+			update_option( 'static_mirror_last_error', $status->get_error_message() );
+			trigger_error( $status->get_error_code() . ': ' . $status->get_error_message(), E_USER_WARNING );
+			return;
+		}
+
+		delete_option( 'static_mirror_last_error' );
+	}
+
 	public function mirror( Array $changelog ) {
 
 		$mirrorer = new Mirrorer();
+
+		if ( HM_DEV ) {
+			error_log( 'Running mirror...' );
+		}
 
 		$destination = $this->get_destination_directory() . date( '/Y/m/j/H-i-s/' );
 		$status = $mirrorer->create( $this->get_base_urls(), $destination );

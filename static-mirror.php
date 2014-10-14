@@ -21,3 +21,4 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 
 add_action( 'init', array( Static_Mirror\Plugin::get_instance(), 'setup_trigger_hooks' ), 999 );
 add_action( 'admin_menu', array( Static_Mirror\Admin::get_instance(), 'add_tools_page' ), 1 );
+add_action( 'static_mirror_create_mirror', array( Static_Mirror\Plugin::get_instance(), 'mirror_on_cron' ) );
