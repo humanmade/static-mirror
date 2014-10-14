@@ -17,6 +17,10 @@ class Admin {
 		return self::$instance;
 	}
 
+	public function __construct() {
+		add_action( 'admin_init', array( $this, 'check_form_submission' ) );
+	}
+
 	/**
 	 * Add the Tools page page
 	 */
@@ -26,23 +30,21 @@ class Admin {
 
 	public function output_tools_page() {
 
-		global $current_screen;
+		include dirname( __FILE__ ) . '/../templates/admin-tools-page.php';
+	}
 
-		$current_screen->post_type = 'static-mirror';
-		
-		$list_table = new List_Table( array(
-			'screen' => $current_screen
-		) );
+	public function check_form_submission() {
 
-		$list_table->prepare_items();
+		if ( empty( $_POST['action'] ) || $_POST['action'] !== 'update-static-mirror' ) {
+			return;
+		}
 
-		?>
-		<div class="wrap">
-			<h2 class="page-title">Static Mirrors</h2>
-			<?php $list_table->display(); ?>
-		</div>
-		<?php
+		check_admin_referer( 'static-mirror.update' );
 
+		$urls = array_filter(
+			array_map( 'esc_url_raw', explode( "\n", $_POST['static-mirror-urls'] ) )
+		);
 
+		Plugin::get_instance()->set_base_urls( $urls );
 	}
 }
