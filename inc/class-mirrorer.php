@@ -23,11 +23,18 @@ class Mirrorer {
 
 		wp_mkdir_p( $destination );
 
+		$mirror_cookies = apply_filters( 'static_mirror_crawler_cookies', array() );
+
+		$cookie_string = implode( ';', array_map( function( $v, $k ) {
+			return $k . '=' . $v;
+		}, $mirror_cookies, array_keys( $mirror_cookies ) ) );
+
 		foreach ( $urls as $url ) {
 
 			$cmd = sprintf( 
-				'wget --user-agent="%s" -nc -p -k -r -erobots=off --restrict-file-names=windows --html-extension -P %s %s 2>&1',
+				'wget --user-agent="%s" -nc -p -k -r -erobots=off --restrict-file-names=windows --html-extension --content-on-error --header "Cookie: %s" -P %s %s 2>&1',
 				'WordPress/Static-Mirror; ' . get_bloginfo( 'url' ),
+				$cookie_string,
 				escapeshellarg( $temp_destination ),
 				escapeshellarg( esc_url_raw( $url ) )
 			);
