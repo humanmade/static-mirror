@@ -73,6 +73,7 @@ class List_Table extends \WP_Posts_List_Table {
 				if ( $singular ) {
 					echo " data-wp-lists='list:$singular'";
 				} ?>>
+				<?php $this->display_in_progress_row() ?>
 				<?php $this->display_rows_or_placeholder(); ?>
 			</tbody>
 		</table>
@@ -171,6 +172,37 @@ class List_Table extends \WP_Posts_List_Table {
 		echo '<tr' . $row_class . '>';
 		$this->single_row_columns( $item );
 		echo '</tr>';
+	}
+
+	public function display_in_progress_row() {
+
+		if ( ! get_option( 'static_mirror_next_changelog' ) && ! get_option( 'static_mirror_in_progress' ) ) {
+			return;
+		}
+
+		list( $columns, $hidden ) = $this->get_column_info();
+
+		if ( get_option( 'static_mirror_next_changelog' ) ) {
+			$next = wp_next_scheduled( 'static_mirror_create_mirror' );
+
+			if ( $next < time() ) {
+				$message = sprintf( "Static Mirror is queued but in the past (%d seconds ago), please make sure WP Cron is functioning.", time() - $next );
+			} else {
+				$message = "Static Mirror queued in " . ( $next - time() ) . ' seconds.';	
+			}
+			
+
+		} elseif ( $in_progress = get_option( 'static_mirror_in_progress' ) ) {
+
+			$message = "Static Mirror is running. Started " . ( time() - $in_progress['time'] ) . ' seconds ago.';			
+		}
+		?>
+		<tr style="background-color: #999; text-align: center;">
+			<td style="color: #fff;" colspan="<?php echo count( $columns ) ?>">
+				<?php echo $message ?>
+			</td>
+		</tr>
+		<?php
 	}
 
 	/**

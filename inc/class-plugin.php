@@ -205,8 +205,12 @@ class Plugin {
 		$changelog = get_option( 'static_mirror_next_changelog', array() );
 		delete_option( 'static_mirror_next_changelog' );
 
+		update_option( 'static_mirror_in_progress', array( 'time' => time(), 'changelog' => $changelog ) );
+
 		$status = $this->mirror( $changelog );
 
+		delete_option( 'static_mirror_in_progress' );
+		
 		if ( is_wp_error( $status ) ) {
 			update_option( 'static_mirror_last_error', $status->get_error_message() );
 			trigger_error( $status->get_error_code() . ': ' . $status->get_error_message(), E_USER_WARNING );
