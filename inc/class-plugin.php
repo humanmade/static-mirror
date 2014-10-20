@@ -215,6 +215,17 @@ class Plugin {
 
 		$status = $this->mirror( $changelog );
 
+		/**
+		 * Running mirror() probably took quite a while, so lets
+		 * throw away the internal object cache, as calling
+		 * *_option() will push stale data to the object cache and 
+		 * cause all sorts of nasty prodblems.
+		 *
+		 * @see https://core.trac.wordpress.org/ticket/25623
+		 */
+		global $wp_object_cache;
+		$wp_object_cache->cache = array();
+
 		delete_option( 'static_mirror_in_progress' );
 		
 		if ( is_wp_error( $status ) ) {
