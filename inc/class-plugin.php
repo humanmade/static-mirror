@@ -202,6 +202,12 @@ class Plugin {
 
 	public function mirror_on_cron() {
 
+		// If a static mirror is already running, queue another one in 3 minutes
+		// as we don't want to run more than one at once.
+		if ( get_option( 'static_mirror_in_progress' ) ) {
+			return wp_schedule_single_event( strtotime( '+3 minutes' ), 'static_mirror_create_mirror' );
+		}
+
 		$changelog = get_option( 'static_mirror_next_changelog', array() );
 		delete_option( 'static_mirror_next_changelog' );
 
