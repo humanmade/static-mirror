@@ -182,19 +182,23 @@ class List_Table extends \WP_Posts_List_Table {
 
 		list( $columns, $hidden ) = $this->get_column_info();
 
+		$message = '';
+
 		if ( get_option( 'static_mirror_next_changelog' ) ) {
-			$next = wp_next_scheduled( 'static_mirror_create_mirror' );
+			$next = wp_next_scheduled( 'static_mirror_create_mirror', get_option( 'static_mirror_next_changelog' ) );
 
 			if ( $next < time() ) {
-				$message = sprintf( "Static Mirror is queued but in the past (%d seconds ago), please make sure WP Cron is functioning.", time() - $next );
+				$message .= sprintf( "Static Mirror is queued but in the past (%d seconds ago), please make sure WP Cron is functioning.", time() - $next );
 			} else {
-				$message = "Static Mirror queued in " . ( $next - time() ) . ' seconds.';	
+				$message .= "Static Mirror queued in " . ( $next - time() ) . ' seconds. ';	
 			}
 			
 
-		} elseif ( $in_progress = get_option( 'static_mirror_in_progress' ) ) {
+		}
 
-			$message = "Static Mirror is running. Started " . ( time() - $in_progress['time'] ) . ' seconds ago.';			
+		if ( $in_progress = get_option( 'static_mirror_in_progress' ) ) {
+
+			$message .= "Static Mirror is running. Started " . ( time() - $in_progress['time'] ) . ' seconds ago. ';			
 		}
 		?>
 		<tr style="background-color: #999; text-align: center;">
