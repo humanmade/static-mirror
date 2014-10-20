@@ -253,7 +253,7 @@ class Plugin {
 		}
 
 		// make an index page
-		$files = array_diff( scandir( $destination), array( '..', '.' ) );
+		$files = array_diff( scandir( $destination ), array( '..', '.' ) );
 
 		ob_start();
 

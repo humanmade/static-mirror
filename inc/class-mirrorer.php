@@ -24,6 +24,7 @@ class Mirrorer {
 		wp_mkdir_p( $destination );
 
 		$mirror_cookies = apply_filters( 'static_mirror_crawler_cookies', array() );
+		$resource_domains = apply_filters( 'static_mirror_resource_domains', array() );
 
 		$cookie_string = implode( ';', array_map( function( $v, $k ) {
 			return $k . '=' . $v;
@@ -31,10 +32,14 @@ class Mirrorer {
 
 		foreach ( $urls as $url ) {
 
+			$allowed_domains = $resource_domains;
+			$allowed_domains[] = parse_url( $url )['host'];
+
 			$cmd = sprintf( 
-				'wget --user-agent="%s" -nc -p -k -r -erobots=off --restrict-file-names=windows --html-extension --content-on-error --header "Cookie: %s" -P %s %s 2>&1',
+				'wget --user-agent="%s" -nc -p -k -r -erobots=off --restrict-file-names=windows --html-extension --content-on-error --header "Cookie: %s" -H -D%s -P %s %s 2>&1',
 				'WordPress/Static-Mirror; ' . get_bloginfo( 'url' ),
 				$cookie_string,
+				implode( $allowed_domains, ',' ),
 				escapeshellarg( $temp_destination ),
 				escapeshellarg( esc_url_raw( $url ) )
 			);
