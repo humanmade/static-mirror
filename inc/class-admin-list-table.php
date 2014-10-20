@@ -185,7 +185,7 @@ class List_Table extends \WP_Posts_List_Table {
 		$message = '';
 
 		if ( get_option( 'static_mirror_next_changelog' ) ) {
-			$next = wp_next_scheduled( 'static_mirror_create_mirror', get_option( 'static_mirror_next_changelog' ) );
+			$next = wp_next_scheduled( 'static_mirror_create_mirror' );
 
 			if ( $next < time() ) {
 				$message .= sprintf( "Static Mirror is queued but in the past (%d seconds ago), please make sure WP Cron is functioning.", time() - $next );
