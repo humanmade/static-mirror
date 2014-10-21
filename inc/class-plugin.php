@@ -253,7 +253,10 @@ class Plugin {
 		}
 
 		// make an index page
-		$files = array_diff( scandir( $destination ), array( '..', '.' ) );
+		$files = array_map( function( $url ) {
+			$url = parse_url( $url );
+			return $url['host'] . untrailingslashit( $url['path'] );
+		}, $this->get_base_urls() );
 
 		ob_start();
 
