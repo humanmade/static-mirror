@@ -105,7 +105,6 @@ class List_Table extends \WP_Posts_List_Table {
 	public function get_column_info() {
 
 		$columns = array(
-			'date' => 'Date',
 			'changelog' => 'Changelog',
 			'info' => 'Snapshot',
 		);
@@ -126,35 +125,14 @@ class List_Table extends \WP_Posts_List_Table {
 		<?php
 	}
 
-	protected function column_date( $post ) {
+	protected function column_changelog( $post ) {
 
-		$t_time = get_the_time( __( 'Y/m/d g:i:s A' ) );
-		$m_time = $post->post_date;
-		$time = get_post_time( 'G', true, $post );
-
-		$time_diff = time() - $time;
-
-		if ( $time_diff > 0 && $time_diff < DAY_IN_SECONDS ) {
-			$h_time = sprintf( __( '%s ago' ), human_time_diff( $time ) );
-		} else {
-			$date_format = get_option( 'date_format', 'Y/m/d' ) . ' @ ' . get_option( 'time_format', 'H:i' );
-			$h_time = mysql2date( __( $date_format ), $m_time );
-		}
-
-		/** This filter is documented in wp-admin/includes/class-wp-posts-list-table.php */
-		echo '<abbr title="' . $t_time . '">' . $h_time . '</abbr>';
-
+		echo $this->get_changelog_html( get_post_meta( $post->ID, '_changelog', true ) );
 		$wp_upload_dir = wp_upload_dir();
 		$permalink = $wp_upload_dir['baseurl'] . get_post_meta( $post->ID, '_dir_rel', true ) . 'index.html';
 		echo $this->row_actions( array(
 			'view' => '<a href="' . esc_url( $permalink ) . '">View</a>'
 		) );
-
-	}
-
-	protected function column_changelog( $post ) {
-
-		echo implode( ', ', array_map( 'esc_html', get_post_meta( $post->ID, '_changelog', true ) ) );
 	}
 
 	/**
@@ -184,7 +162,7 @@ class List_Table extends \WP_Posts_List_Table {
 
 		$message = '';
 
-		if ( get_option( 'static_mirror_next_changelog' ) ) {
+		if ( $changelog = get_option( 'static_mirror_next_changelog' ) ) {
 			$next = wp_next_scheduled( 'static_mirror_create_mirror' );
 
 			if ( $next < time() ) {
@@ -193,12 +171,14 @@ class List_Table extends \WP_Posts_List_Table {
 				$message .= "Static Mirror queued in " . ( $next - time() ) . ' seconds. ';	
 			}
 			
-
+			$message .= $this->get_changelog_html( $changelog );
 		}
 
 		if ( $in_progress = get_option( 'static_mirror_in_progress' ) ) {
 
 			$message .= "Static Mirror is running. Started " . ( time() - $in_progress['time'] ) . ' seconds ago. ';			
+
+			$message .= $this->get_changelog_html( $in_progress['changelog'] );
 		}
 		?>
 		<tr style="background-color: #999; text-align: center;">
@@ -207,6 +187,17 @@ class List_Table extends \WP_Posts_List_Table {
 			</td>
 		</tr>
 		<?php
+	}
+
+	protected function get_changelog_html( $changelog ) {
+		$message = '<ul style="text-align: left">';
+		foreach ( $changelog as $change ) {
+			$message .= '<li>' . date( "g:ia", $change['date'] ) . ' - ' . $change['text'] . '</li>';
+		}
+
+		$message .= '</ul>';
+
+		return $message;
 	}
 
 	/**

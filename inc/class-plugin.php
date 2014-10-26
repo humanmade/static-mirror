@@ -85,6 +85,13 @@ class Plugin {
 	 */
 	public function setup_trigger_hooks() {
 
+		// Timeout sttic mirrors for 60 minutes
+		if ( $current = get_option( 'static_mirror_in_progress' ) ) {
+			if ( $current['time'] < strtotime( '-60 minutes' ) ) {
+				delete_option( 'static_mirror_in_progress' );
+			}
+		}
+
 		// don't trigger the hooks if the request is from a static mirrir happening
 		if ( ! empty( $_SERVER['HTTP_USER_AGENT'] ) && strpos( $_SERVER['HTTP_USER_AGENT'], 'WordPress/Static-Mirror' ) !== false ) {
 			return;
@@ -164,16 +171,16 @@ class Plugin {
 	 *
 	 * @param String $changelog A changelog of what happened to cause a mirror.
 	 */
-	public function queue_mirror( $changelog ) {
+	public function queue_mirror( $changelog, $when = 60 ) {
 
 		// we queue one to happen in 5 minutes, if one is already queued, we push that back 
 		$next_queue_changelog   = get_option( 'static_mirror_next_changelog', array() );
-		$next_queue_changelog[] = $changelog;
+		$next_queue_changelog[] = array( 'date' => time(), 'text' => $changelog );
 
 		update_option( 'static_mirror_next_changelog', $next_queue_changelog );
 
 		wp_clear_scheduled_hook( 'static_mirror_create_mirror' );
-		wp_schedule_single_event( strtotime( '+1 minutes' ), 'static_mirror_create_mirror' );
+		wp_schedule_single_event( time() + $when, 'static_mirror_create_mirror' );
 	}
 
 	/**
@@ -240,6 +247,7 @@ class Plugin {
 	public function mirror( Array $changelog ) {
 
 		$mirrorer = new Mirrorer();
+		$start_time = time();
 
 		if ( HM_DEV ) {
 			error_log( 'Running mirror...' );
@@ -258,6 +266,7 @@ class Plugin {
 			return $url['host'] . untrailingslashit( $url['path'] );
 		}, $this->get_base_urls() );
 
+		$end_time = time();
 		ob_start();
 
 		include dirname( __FILE__ ) . '/template-index.php';
@@ -275,6 +284,8 @@ class Plugin {
 		update_post_meta( $post_id, '_changelog', $changelog );
 		update_post_meta( $post_id, '_dir', $destination );
 		update_post_meta( $post_id, '_dir_rel', str_replace( $uploads_dir['basedir'], '', $destination ) );
+		update_post_meta( $post_id, 'mirror_start', $start_time );
+		update_post_meta( $post_id, 'mirror_end', $end_time );
 
 		return $uploads_dir['basedir'] . '/mirrors';
 	}

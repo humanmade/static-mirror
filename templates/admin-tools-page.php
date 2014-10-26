@@ -14,7 +14,10 @@ $list_table->prepare_items();
 
 ?>
 <div class="wrap">
-	<h2 class="page-title">Static Mirrors</h2>
+	<h2 class="page-title">
+		Static Mirrors
+		<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'action', 'static-mirror-create-mirror' ), 'static-mirror-create' ) ); ?>" class="add-new-h2">Create Mirror Now</a>
+	</h2>
 
 	<form method="post" action="<?php echo esc_url( add_query_arg( 'page', $_GET['page'], 'tools.php' ) ) ?>">
 		<input type="hidden" name="action" value="update-static-mirror" />

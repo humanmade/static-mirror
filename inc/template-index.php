@@ -20,7 +20,7 @@
 
 		<ul>
 			<?php foreach ( $changelog as $change ) : ?>
-				<li><?php echo esc_html( $change ) ?></li>
+				<li><?php echo date( 'c', $change['date'] ) ?> - <?php echo esc_html( $change['text'] ) ?></li>
 			<?php endforeach ?>
 		</ul>
 	</body>
