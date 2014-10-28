@@ -16,7 +16,6 @@ class Mirrorer {
 	 */
 	public static function create( Array $urls, $destination, $recursive ) {
 
-		error_log('creating for urls' . implode(' ', $urls) );
 		if ( ! static::check_dependancies() ) {
 			return new WP_Error( 'dependancies-not-met', 'You do not have the necessary dependancies to run a mirror.' );
 		}
@@ -46,7 +45,6 @@ class Mirrorer {
 				escapeshellarg( $temp_destination ),
 				escapeshellarg( esc_url_raw( $url ) )
 			);
-			error_log($cmd);
 
 			$data = shell_exec( $cmd );
 
