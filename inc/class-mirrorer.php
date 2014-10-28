@@ -11,10 +11,12 @@ class Mirrorer {
 	 * 
 	 * @param  Array  $urls
 	 * @param  String $destination
+	 * @param  bool   Whether to make the mirror recursivly crawl pages
 	 * @return WP_Error|null
 	 */
-	public static function create( Array $urls, $destination ) {
+	public static function create( Array $urls, $destination, $recursive ) {
 
+		error_log('creating for urls' . implode(' ', $urls) );
 		if ( ! static::check_dependancies() ) {
 			return new WP_Error( 'dependancies-not-met', 'You do not have the necessary dependancies to run a mirror.' );
 		}
@@ -36,13 +38,15 @@ class Mirrorer {
 			$allowed_domains[] = parse_url( $url )['host'];
 
 			$cmd = sprintf( 
-				'wget --user-agent="%s" -nc -p -k -r -erobots=off --restrict-file-names=windows --html-extension --content-on-error --header "Cookie: %s" -H -D%s -P %s %s 2>&1',
+				'wget --user-agent="%s" -nc -p -k %s -erobots=off --restrict-file-names=windows --html-extension --content-on-error --header "Cookie: %s" -H -D%s -P %s %s 2>&1',
 				'WordPress/Static-Mirror; ' . get_bloginfo( 'url' ),
+				$recursive ? '-r' : '',
 				$cookie_string,
 				implode( $allowed_domains, ',' ),
 				escapeshellarg( $temp_destination ),
 				escapeshellarg( esc_url_raw( $url ) )
 			);
+			error_log($cmd);
 
 			$data = shell_exec( $cmd );
 

@@ -192,7 +192,7 @@ class List_Table extends \WP_Posts_List_Table {
 	protected function get_changelog_html( $changelog ) {
 		$message = '<ul style="text-align: left">';
 		foreach ( $changelog as $change ) {
-			$message .= '<li>' . date( "g:ia", $change['date'] ) . ' - ' . $change['text'] . '</li>';
+			$message .= '<li>' . date_i18n( "g:ia", $change['date'], true ) . ' - ' . $change['text'] . '</li>';
 		}
 
 		$message .= '</ul>';

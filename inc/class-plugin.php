@@ -92,6 +92,10 @@ class Plugin {
 			}
 		}
 
+		if ( ! wp_next_scheduled( 'static_mirror_create_mirror' ) ) {
+			wp_schedule_event( strtotime( 'tonight 12am' ), 'daily', 'static_mirror_create_mirror' );
+		}
+
 		// don't trigger the hooks if the request is from a static mirrir happening
 		if ( ! empty( $_SERVER['HTTP_USER_AGENT'] ) && strpos( $_SERVER['HTTP_USER_AGENT'], 'WordPress/Static-Mirror' ) !== false ) {
 			return;
@@ -107,12 +111,16 @@ class Plugin {
 
 			$post_type_object = get_post_type_object( $post->post_type );
 
-			$this->queue_mirror( sprintf( 
+			if ( $post_type_object->public != true ) {
+				return;
+			}
+
+			$this->queue_mirror_url( sprintf( 
 				'The %s %s was %s.',
 				$post_type_object->labels->singular_name,
 				$post->post_title,
 				$update ? 'updated' : 'published' 
-			) );
+			), get_permalink( $post_id ), $post_id );
 
 		}, 10, 3 );
 
@@ -122,6 +130,10 @@ class Plugin {
 			$post_type_object = get_post_type_object( $post->post_type );
 
 			if ( $post->post_status != 'publish' ) {
+				return;
+			}
+
+			if ( $post_type_object->public != true ) {
 				return;
 			}
 
@@ -138,13 +150,13 @@ class Plugin {
 				return;
 			}
 
-			$this->queue_mirror( sprintf( 
+			$this->queue_mirror_url( sprintf( 
 				'The %s %s was assigned the %s %s.',
 				$post_type_object->labels->singular_name,
 				$post->post_title,
 				$taxonomy_object->labels->name,
 				implode( ', ' , $terms )
-			) );
+			), get_permalink( $object_id ), $object_id );
 
 		}, 10, 6 );
 	}
@@ -163,30 +175,22 @@ class Plugin {
 		register_post_type( 'static-mirror', $args );
 	}
 
-	/**
-	 * Queue a mirror of the site
-	 *
-	 * The mirrorer will be run on the end of the script execution to allow other
-	 * code to queue mirrors too. 
-	 *
-	 * @param String $changelog A changelog of what happened to cause a mirror.
-	 */
-	public function queue_mirror( $changelog, $when = 60 ) {
+	public function queue_mirror_url( $changelog, $url, $key = null ) {
 
-		// we queue one to happen in 5 minutes, if one is already queued, we push that back 
-		$next_queue_changelog   = get_option( 'static_mirror_next_changelog', array() );
-		$next_queue_changelog[] = array( 'date' => time(), 'text' => $changelog );
+		$this->changelog[] = array( 'date' => time(), 'text' => $changelog );
 
-		update_option( 'static_mirror_next_changelog', $next_queue_changelog );
+		if ( $key ) {
+			$this->urls[$key] = $url;
+		} else {
+			$this->urls[] = $url;	
+		}
 
-		wp_clear_scheduled_hook( 'static_mirror_create_mirror' );
-		wp_schedule_single_event( time() + $when, 'static_mirror_create_mirror' );
+		if ( ! $this->queued ) {
+			add_action( 'shutdown', array( $this, 'mirror_on_shutdown' ), 11 );
+			$this->queued = true;
+		}
 	}
 
-	/**
-	 * Mirror the site on shutdown.
-	 * @return WP_Error|null
-	 */
 	public function mirror_on_shutdown() {
 
 		/**
@@ -196,7 +200,7 @@ class Plugin {
 			fastcgi_finish_request();
 		}
 
-		$status = $this->mirror( $this->changelog );
+		$status = $this->mirror( $this->changelog, $this->urls, false );
 
 		if ( is_wp_error( $status ) ) {
 			update_option( 'static_mirror_last_error', $status->get_error_message() );
@@ -206,32 +210,38 @@ class Plugin {
 
 		delete_option( 'static_mirror_last_error' );
 	}
+	
+	/**
+	 * Queue a mirror of the site
+	 *
+	 * The mirrorer will be run on the end of the script execution to allow other
+	 * code to queue mirrors too. 
+	 *
+	 * @param String $changelog A changelog of what happened to cause a mirror.
+	 */
+	public function queue_complete_mirror( $changelog, $when = 60 ) {
+
+		// we queue one to happen in 5 minutes, if one is already queued, we push that back 
+		$next_queue_changelog   = get_option( 'static_mirror_next_changelog', array() );
+		$next_queue_changelog[] = array( 'date' => time(), 'text' => $changelog );
+
+		update_option( 'static_mirror_next_changelog', $next_queue_changelog );
+
+		wp_schedule_single_event( time() + $when, 'static_mirror_create_mirror' );
+	}
 
 	public function mirror_on_cron() {
-
-		// If a static mirror is already running, queue another one in 3 minutes
-		// as we don't want to run more than one at once.
-		if ( get_option( 'static_mirror_in_progress' ) ) {
-			return wp_schedule_single_event( strtotime( '+3 minutes' ), 'static_mirror_create_mirror' );
-		}
 
 		$changelog = get_option( 'static_mirror_next_changelog', array() );
 		delete_option( 'static_mirror_next_changelog' );
 
+		if ( ! $changelog ) {
+			$changelog = array( array( 'date' => time(), 'text' => 'Scheduled Mirror' ) );
+		}
+
 		update_option( 'static_mirror_in_progress', array( 'time' => time(), 'changelog' => $changelog ) );
 
-		$status = $this->mirror( $changelog );
-
-		/**
-		 * Running mirror() probably took quite a while, so lets
-		 * throw away the internal object cache, as calling
-		 * *_option() will push stale data to the object cache and 
-		 * cause all sorts of nasty prodblems.
-		 *
-		 * @see https://core.trac.wordpress.org/ticket/25623
-		 */
-		global $wp_object_cache;
-		$wp_object_cache->cache = array();
+		$status = $this->complete_mirror( $changelog );
 
 		delete_option( 'static_mirror_in_progress' );
 		
@@ -244,17 +254,29 @@ class Plugin {
 		delete_option( 'static_mirror_last_error' );
 	}
 
-	public function mirror( Array $changelog ) {
+	public function complete_mirror( Array $changelog ) {
+
+		$this->mirror( $changelog, $this->get_base_urls(), true );
+	}
+
+	public function mirror( Array $changelog, Array $urls, $recursive = false ) {
 
 		$mirrorer = new Mirrorer();
 		$start_time = time();
 
-		if ( HM_DEV ) {
-			error_log( 'Running mirror...' );
-		}
-
 		$destination = $this->get_destination_directory() . date( '/Y/m/j/H-i-s/' );
-		$status = $mirrorer->create( $this->get_base_urls(), $destination );
+		$status = $mirrorer->create( $urls, $destination, $recursive );
+
+		/**
+		 * Running mirror() probably took quite a while, so lets
+		 * throw away the internal object cache, as calling
+		 * *_option() will push stale data to the object cache and 
+		 * cause all sorts of nasty prodblems.
+		 *
+		 * @see https://core.trac.wordpress.org/ticket/25623
+		 */
+		global $wp_object_cache;
+		$wp_object_cache->cache = array();
 
 		if ( is_wp_error( $status ) ) {
 			return $status;
@@ -264,7 +286,7 @@ class Plugin {
 		$files = array_map( function( $url ) {
 			$url = parse_url( $url );
 			return $url['host'] . untrailingslashit( $url['path'] );
-		}, $this->get_base_urls() );
+		}, $urls );
 
 		$end_time = time();
 		ob_start();

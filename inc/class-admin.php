@@ -44,7 +44,7 @@ class Admin {
 			wp_die( 'Failed to verify nonce, sorry' );
 		}
 
-		Plugin::get_instance()->queue_mirror( 'Manually triggered mirror', 0 );
+		Plugin::get_instance()->queue_complete_mirror( 'Manually triggered mirror', 0 );
 
 		wp_safe_redirect( remove_query_arg( array( '_wpnonce', 'action' ) ) );
 		exit;
