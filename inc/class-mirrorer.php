@@ -91,22 +91,21 @@ class Mirrorer {
 				// very well.
 				$options = stream_context_get_options( stream_context_get_default() );
 
-				if ( isset( $options['s3'] ) ) {
+				if ( pathinfo( $source . '/' . $file, PATHINFO_EXTENSION ) === 'html' && isset( $options['s3'] ) ) {
 					$finfo = finfo_open( FILEINFO_MIME_TYPE );
 					$mimetype = finfo_file( $finfo, $source . '/' . $file );
 					finfo_close($finfo);
 
 					$options = stream_context_get_options( stream_context_get_default() );
 					$options['s3']['ContentType'] = $mimetype;
-					$context = stream_context_create( $options );	
+					$context = stream_context_create( $options );
+
+					@copy( $source . '/' . $file, $dest . '/' . $file, $context );
 				} else {
-					$context = null;
+					@copy( $source . '/' . $file, $dest . '/' . $file );
 				}
 
-				if ( ! @copy( $source . '/' . $file, $dest . '/' . $file, $context ) ) {
-
-				}
-				unlink( $source . '/' . $file );
+				//unlink( $source . '/' . $file );
 			}
 
 		}
