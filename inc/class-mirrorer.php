@@ -86,7 +86,24 @@ class Mirrorer {
 
 				self::move_directory( $source . '/' . $file, $dest . '/' . $file );
 			} else {
-				if ( ! @copy( $source . '/' . $file, $dest . '/' . $file ) ) {
+
+				// we want to get the mimetype of the file as wget will not use extensions
+				// very well.
+				$options = stream_context_get_options( stream_context_get_default() );
+
+				if ( isset( $options['s3'] ) ) {
+					$finfo = finfo_open( FILEINFO_MIME_TYPE );
+					$mimetype = finfo_file( $finfo, $source . '/' . $file );
+					finfo_close($finfo);
+
+					$options = stream_context_get_options( stream_context_get_default() );
+					$options['s3']['ContentType'] = $mimetype;
+					$context = stream_context_create( $options );	
+				} else {
+					$context = null;
+				}
+
+				if ( ! @copy( $source . '/' . $file, $dest . '/' . $file, $context ) ) {
 
 				}
 				unlink( $source . '/' . $file );
