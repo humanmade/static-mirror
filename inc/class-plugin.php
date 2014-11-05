@@ -93,7 +93,7 @@ class Plugin {
 		}
 
 		if ( ! wp_next_scheduled( 'static_mirror_create_mirror' ) ) {
-			wp_schedule_event( strtotime( 'tonight 12am' ), 'daily', 'static_mirror_create_mirror' );
+			wp_schedule_event( apply_filters( 'static_mirror_daily_schedule_time', strtotime( 'today 11:59pm' ) ), 'daily', 'static_mirror_create_mirror' );
 		}
 
 		// don't trigger the hooks if the request is from a static mirrir happening
