@@ -67,7 +67,7 @@ class Mirrorer {
 	 * @param string $dest
 	 * @return boolean true on success false otherwise
 	 */
-	public static function move_directory($source, $dest ) {
+	public static function move_directory( $source, $dest ) {
 
 		$sourceHandle = opendir( $source );
 	 
@@ -105,7 +105,7 @@ class Mirrorer {
 					@copy( $source . '/' . $file, $dest . '/' . $file );
 				}
 
-				//unlink( $source . '/' . $file );
+				unlink( $source . '/' . $file );
 			}
 
 		}

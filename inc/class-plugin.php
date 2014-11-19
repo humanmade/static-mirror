@@ -48,7 +48,7 @@ class Plugin {
 	public function get_destination_directory() {
 		$uploads_dir = wp_upload_dir();
 
-		return $uploads_dir['basedir'] . '/mirrors';
+		return dirname( $uploads_dir['basedir'] ) . '/mirrors';
 	}
 
 	/**
