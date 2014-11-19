@@ -42,7 +42,7 @@ class WP_CLI_Command extends \WP_CLI_Command {
 		), $args_assoc );
 
 		$plugin = Plugin::get_instance();
-		$status = $plugin->mirror( array( array( 'date' => time(), 'text' => $args_assoc['changelog'] ) ) );
+		$status = $plugin->complete_mirror( array( array( 'date' => time(), 'text' => $args_assoc['changelog'] ) ) );
 
 		if ( is_wp_error( $status ) ) {
 			\WP_CLI::error( $status->get_error_message() );
