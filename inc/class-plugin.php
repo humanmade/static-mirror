@@ -71,7 +71,7 @@ class Plugin {
 				'dir' => get_post_meta( $post->ID, '_dir', true ),
 				'date' => strtotime( $post->post_date_gmt ),
 				'changelog' => get_post_meta( $post->ID, '_changelog', true ),
-				'url' => $wp_upload_dir['baseurl'] . get_post_meta( $post->ID, '_dir_rel', true )
+				'url' => dirname( $wp_upload_dir['baseurl'] ) . get_post_meta( $post->ID, '_dir_rel', true )
 			);
 		}, $mirrors );
 	}
@@ -305,7 +305,7 @@ class Plugin {
 
 		update_post_meta( $post_id, '_changelog', $changelog );
 		update_post_meta( $post_id, '_dir', $destination );
-		update_post_meta( $post_id, '_dir_rel', str_replace( $uploads_dir['basedir'], '', $destination ) );
+		update_post_meta( $post_id, '_dir_rel', str_replace( dirname( $uploads_dir['basedir'] ), '', $destination ) );
 		update_post_meta( $post_id, 'mirror_start', $start_time );
 		update_post_meta( $post_id, 'mirror_end', $end_time );
 
