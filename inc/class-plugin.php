@@ -8,6 +8,7 @@ class Plugin {
 	private $queued = false;
 	private $changelog = array();
 
+
 	public static function get_instance() {
 
 		if ( ! self::$instance ) {
@@ -159,6 +160,23 @@ class Plugin {
 			), get_permalink( $object_id ), $object_id );
 
 		}, 10, 6 );
+	}
+
+	public function setup_capabilities() {
+
+		if ( get_option( 'static_mirror_added_roles' ) ) {
+			return;
+		}
+
+		$admin = get_role( 'administrator' );
+
+		if ( ! $admin ) {
+			return;
+		}
+
+		$admin->add_cap( 'static_mirror_manage_mirrors' );
+
+		update_option( 'static_mirror_added_roles', true );
 	}
 
 	protected function register_post_type() {

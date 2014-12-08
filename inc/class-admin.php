@@ -26,7 +26,7 @@ class Admin {
 	 * Add the Tools page page
 	 */
 	public function add_tools_page() {
-		add_submenu_page( 'tools.php', 'Static Mirrors', 'Static Mirror', 'activate_plugins', 'static-mirror-tools-page', array( $this, 'output_tools_page' ) );
+		add_submenu_page( 'tools.php', 'Static Mirrors', 'Static Mirror', 'static_mirror_manage_mirrors', 'static-mirror-tools-page', array( $this, 'output_tools_page' ) );
 	}
 
 	public function output_tools_page() {
