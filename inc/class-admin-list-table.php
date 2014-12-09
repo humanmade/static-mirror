@@ -10,6 +10,14 @@ class List_Table extends \WP_Posts_List_Table {
 	public function prepare_items() {
 		global $avail_post_stati, $wp_query, $per_page, $mode;
 
+		/**
+		 * Remove the permissions check for the query as we want anyone who can view
+		 * this page to be able to view the static mirrors on it.
+		 */
+		add_action( 'parse_query', function( $q ) {
+			$q->set( 'perm', '' );
+		});
+		
 		$avail_post_stati = wp_edit_posts_query( array(
 			'post_status' => 'private',
 			'post_type' => 'static-mirror'
