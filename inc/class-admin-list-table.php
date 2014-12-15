@@ -16,6 +16,7 @@ class List_Table extends \WP_Posts_List_Table {
 		 */
 		add_action( 'parse_query', function( $q ) {
 			$q->set( 'perm', '' );
+			$q->set( 'author', '' );
 		});
 
 		$avail_post_stati = wp_edit_posts_query( array(
