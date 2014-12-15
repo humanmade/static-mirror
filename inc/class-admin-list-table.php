@@ -17,7 +17,7 @@ class List_Table extends \WP_Posts_List_Table {
 		add_action( 'parse_query', function( $q ) {
 			$q->set( 'perm', '' );
 		});
-		
+
 		$avail_post_stati = wp_edit_posts_query( array(
 			'post_status' => 'private',
 			'post_type' => 'static-mirror'
@@ -176,15 +176,15 @@ class List_Table extends \WP_Posts_List_Table {
 			if ( $next < time() ) {
 				$message .= sprintf( "Static Mirror is queued but in the past (%d seconds ago), please make sure WP Cron is functioning.", time() - $next );
 			} else {
-				$message .= "Static Mirror queued in " . ( $next - time() ) . ' seconds. ';	
+				$message .= "Static Mirror queued in " . ( $next - time() ) . ' seconds. ';
 			}
-			
+
 			$message .= $this->get_changelog_html( $changelog );
 		}
 
 		if ( $in_progress = get_option( 'static_mirror_in_progress' ) ) {
 
-			$message .= "Static Mirror is running. Started " . ( time() - $in_progress['time'] ) . ' seconds ago. ';			
+			$message .= "Static Mirror is running. Started " . ( time() - $in_progress['time'] ) . ' seconds ago. ';
 
 			$message .= $this->get_changelog_html( $in_progress['changelog'] );
 		}
@@ -198,11 +198,15 @@ class List_Table extends \WP_Posts_List_Table {
 	}
 
 	protected function get_changelog_html( $changelog ) {
+
 		$message = '<ul style="text-align: left">';
 		foreach ( $changelog as $change ) {
-			$message .= '<li>' . date_i18n( "g:ia", $change['date'], true ) . ' - ' . $change['text'] . '</li>';
+			$message .= sprintf(
+				'<li>%s - %s</li>',
+				esc_html( date_i18n( "g:ia", $change['date'], true ) ),
+				esc_html( $change['text'] )
+			);
 		}
-
 		$message .= '</ul>';
 
 		return $message;
