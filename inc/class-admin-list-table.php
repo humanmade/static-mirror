@@ -90,7 +90,20 @@ class List_Table extends \WP_Posts_List_Table {
 		$this->display_tablenav( 'bottom' );
 	}
 
-	public function bulk_actions( $which = '' ) {
+	protected function bulk_actions( $which = '' ) {
+	}
+
+	/**
+	 * Add extra markup in the toolbars before or after the table list
+	 *
+	 * @param string $which Identifies the place to add a toolbar
+	 *                      before (top) or after (bottom) the table list
+	 */
+	protected function extra_tablenav( $which ) {
+
+		if ( 'top' === $which ) {
+
+		}
 	}
 
 	/**
