@@ -63,7 +63,7 @@ class List_Table extends \WP_Posts_List_Table {
 	 */
 	public function display() {
 		$singular = $this->_args['singular'];
-
+		$this->display_tablenav( 'top' );
 		?>
 		<table class="wp-list-table <?php echo implode( ' ', $this->get_table_classes() ); ?>">
 			<thead>
@@ -91,6 +91,48 @@ class List_Table extends \WP_Posts_List_Table {
 	}
 
 	public function bulk_actions( $which = '' ) {
+	}
+
+	/**
+	 * Don't display a view switcher
+	 *
+	 * @param string $current_mode
+	 */
+	protected function view_switcher( $current_mode ) {
+	}
+
+	/**
+	 * Add extra markup in the toolbars before or after the table list
+	 * Date filters, to show Static Mirrors for a specific period of time
+	 *
+	 * Add to both top and bottom of the table list
+	 *
+	 * @param string $which Identifies the place to add a toolbar
+	 *                      before (top) or after (bottom) the table list
+	 */
+	protected function extra_tablenav( $which ) {
+		?>
+		<div class="alignleft actions">
+			<?php
+			if ( 'top' === $which && ! is_singular() ) {
+
+				// TODO: ADD input fields or dropdowns for dates
+				/**
+				 * Fires before the Filter button on the Posts and Pages list tables.
+				 *
+				 * The Filter button allows sorting by date and/or category on the
+				 * Posts list table, and sorting by date on the Pages list table.
+				 *
+				 * @since 2.1.0
+				 */
+				do_action( 'restrict_manage_posts' );
+
+				// TODO: Joe, what text domain should we use?
+				submit_button( __( 'Filter' ), 'button', 'filter_action', false, array( 'id' => 'post-query-submit' ) );
+			}
+			?>
+		</div>
+		<?php
 	}
 
 	/**
