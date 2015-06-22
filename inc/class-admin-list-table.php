@@ -90,6 +90,13 @@ class List_Table extends \WP_Posts_List_Table {
 		$this->display_tablenav( 'bottom' );
 	}
 
+	/**
+	 * Don't display the bulk actions dropdown for Static Mirrow
+	 * as this functionality is not supported
+	 *
+	 * @param string $which The location of the bulk actions: 'top' or 'bottom'.
+	 *                      This is designated as optional for backwards-compatibility.
+	 */
 	protected function bulk_actions( $which = '' ) {
 	}
 
