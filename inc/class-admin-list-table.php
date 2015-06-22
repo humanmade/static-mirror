@@ -101,19 +101,6 @@ class List_Table extends \WP_Posts_List_Table {
 	}
 
 	/**
-	 * Add extra markup in the toolbars before or after the table list
-	 *
-	 * @param string $which Identifies the place to add a toolbar
-	 *                      before (top) or after (bottom) the table list
-	 */
-	protected function extra_tablenav( $which ) {
-
-		if ( 'top' === $which ) {
-
-		}
-	}
-
-	/**
 	 * Message to be displayed when there are no items
 	 *
 	 * @since 3.1.0
