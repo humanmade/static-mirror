@@ -30,7 +30,7 @@ class List_Table extends \WP_Posts_List_Table {
 
 	public function register_admin_scripts() {
 		wp_enqueue_script( 'jquery-ui-datepicker' );
-		wp_enqueue_script( 'static-mirror-jquery-date-picker', plugins_url( SM_PLUGIN_URL . '/js/admin.js' ) );
+		wp_enqueue_script( 'static-mirror-jquery-date-picker', plugins_url( SM_PLUGIN_URL . 'js/admin.js' ) );
 	}
 
 	public function prepare_items() {

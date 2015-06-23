@@ -21,7 +21,7 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 
 // Plugin URL
 if ( ! defined( 'SM_PLUGIN_URL' ) ) {
-	define( 'SM_PLUGIN_URL', plugins_url( __FILE__ ) );
+	define( 'SM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 }
 
 add_action( 'init', array( Static_Mirror\Plugin::get_instance(), 'setup_trigger_hooks' ), 999 );
