@@ -7,6 +7,32 @@ require_once ABSPATH . 'wp-admin/includes/class-wp-posts-list-table.php';
 
 class List_Table extends \WP_Posts_List_Table {
 
+	/**
+	 * Constructor
+	 *
+	 * @param array $args An associative array of arguments.
+	 */
+	public function __construct( $args = array() ) {
+
+		// Call WP_Posts_List_Table constructor
+		parent::__construct();
+
+		// Add admin CSS
+		add_action( 'admin_print_styles', array( $this, 'register_admin_styles' ) );
+
+		// Add admin JS
+		add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_scripts' ) );
+	}
+
+	public function register_admin_styles() {
+		wp_enqueue_style( 'jquery-ui-datepicker', 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/themes/smoothness/jquery-ui.css' );
+	}
+
+	public function register_admin_scripts() {
+		wp_enqueue_script( 'jquery-ui-datepicker' );
+		wp_enqueue_script( 'static-mirror-jquery-date-picker', plugins_url( SM_PLUGIN_URL . '/js/admin.js' ) );
+	}
+
 	public function prepare_items() {
 		global $avail_post_stati, $wp_query, $per_page, $mode;
 
@@ -114,9 +140,11 @@ class List_Table extends \WP_Posts_List_Table {
 		?>
 		<div class="alignleft actions">
 			<?php
-			if ( 'top' === $which && ! is_singular() ) {
+			if ( ! is_singular() ) {
 
-				// TODO: ADD input fields or dropdowns for dates
+				// Date picker fields for the date range filtering
+				$this->date_picker_range();
+
 				/**
 				 * Fires before the Filter button on the Posts and Pages list tables.
 				 *
@@ -133,6 +161,15 @@ class List_Table extends \WP_Posts_List_Table {
 			?>
 		</div>
 		<?php
+	}
+
+	protected function date_picker_range() {
+
+		$date_from = isset( $_GET['date_from'] ) ? $_GET['date_from'] : '';
+		$date_to   = isset( $_GET['date_to'] ) ? $_GET['date_to'] : '';
+
+		echo '<input class="datepicker date-from" type="text" name="date_from" value="' . esc_attr( $date_from ) . '" />';
+		echo '<input class="datepicker date-to" type="text" name="date_to" value="' . esc_attr( $date_to ) . '" />';
 	}
 
 	/**
