@@ -17,20 +17,26 @@ class List_Table extends \WP_Posts_List_Table {
 		// Call WP_Posts_List_Table constructor
 		parent::__construct();
 
-		// Add admin CSS
-		add_action( 'admin_print_styles', array( $this, 'register_admin_styles' ) );
-
-		// Add admin JS
-		add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_scripts' ) );
+		/**
+		 * Add admin JS and CSS
+		 *
+		 * NOTE: Don't use add_action( 'admin_print_styles', ... ) because
+		 * class is instasialised in the templates/admin-tools-page.php
+		 * and all header/setup actions have already been run
+		 */
+		$this->register_admin_js_css();
 	}
 
-	public function register_admin_styles() {
-		wp_enqueue_style( 'jquery-ui-datepicker', 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/themes/smoothness/jquery-ui.css' );
-	}
-
-	public function register_admin_scripts() {
+	/**
+	 * Register admin JS and CSS
+	 */
+	public function register_admin_js_css() {
+		// JS
 		wp_enqueue_script( 'jquery-ui-datepicker' );
 		wp_enqueue_script( 'static-mirror-jquery-date-picker', SM_PLUGIN_URL . 'js/admin.js' );
+
+		// CSS
+		wp_enqueue_style( 'jquery-ui-datepicker', 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/themes/smoothness/jquery-ui.css' );
 	}
 
 	public function prepare_items() {
