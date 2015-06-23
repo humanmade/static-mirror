@@ -162,7 +162,7 @@ class List_Table extends \WP_Posts_List_Table {
 				do_action( 'restrict_manage_posts' );
 
 				// TODO: Joe, what text domain should we use?
-				submit_button( __( 'Filter' ), 'button', 'filter_action', false, array( 'id' => 'post-query-submit' ) );
+				submit_button( __( 'Filter' ), 'button', 'filter-date-range-action', false );
 			}
 			?>
 		</div>
