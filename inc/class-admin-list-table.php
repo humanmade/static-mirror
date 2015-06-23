@@ -160,9 +160,6 @@ class List_Table extends \WP_Posts_List_Table {
 				 * @since 2.1.0
 				 */
 				do_action( 'restrict_manage_posts' );
-
-				// TODO: Joe, what text domain should we use?
-				submit_button( __( 'Filter' ), 'button', 'filter-date-range-action', false );
 			}
 			?>
 		</div>
@@ -182,12 +179,21 @@ class List_Table extends \WP_Posts_List_Table {
 		$date_to   = isset( $_GET['date-to'] ) ? $_GET['date-to'] : '';
 		?>
 
-		<label for="date-from-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date from:' ); ?></label>
-		<input id="date-from-<?php echo esc_attr( $which ); ?>" class="datepicker date-from"
-		       type="text" name="date-from" value="<?php echo esc_attr( $date_from ); ?>" />
-		<label for="date-to-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date to:' ); ?></label>
-		<input id="date-to-<?php echo esc_attr( $which ); ?>" class="datepicker date-to"
-		       type="text" name="date-to" value="<?php echo esc_attr( $date_to ); ?>" />
+		<form method="get" action="<?php echo esc_url( add_query_arg( 'page', $_GET['page'], 'tools.php' ) ); ?>">
+			<input type="hidden" name="action" value="filter-date-range" />
+			<?php wp_nonce_field( 'static-mirror.filter-date-range' ); ?>
+
+			<label for="date-from-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date from:' ); ?></label>
+			<input id="date-from-<?php echo esc_attr( $which ); ?>" class="datepicker date-from"
+			       type="text" name="date-from" value="<?php echo esc_attr( $date_from ); ?>" />
+			<label for="date-to-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date to:' ); ?></label>
+			<input id="date-to-<?php echo esc_attr( $which ); ?>" class="datepicker date-to"
+			       type="text" name="date-to" value="<?php echo esc_attr( $date_to ); ?>" />
+
+			<?php
+			submit_button( __( 'Filter' ), 'button', 'filter', false );
+			?>
+		</form>
 
 		<?php
 	}
