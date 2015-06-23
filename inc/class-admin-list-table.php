@@ -149,7 +149,7 @@ class List_Table extends \WP_Posts_List_Table {
 			if ( ! is_singular() ) {
 
 				// Date picker fields for the date range filtering
-				$this->date_picker_range();
+				$this->date_picker_range( $which );
 
 				/**
 				 * Fires before the Filter button on the Posts and Pages list tables.
@@ -169,13 +169,27 @@ class List_Table extends \WP_Posts_List_Table {
 		<?php
 	}
 
-	protected function date_picker_range() {
+	/**
+	 * Displays date range input fields
+	 *
+	 * @param string $which Identifies the place the date range fields
+	 *                      are being displayed at: before (top) or after (bottom)
+	 *                      the table list
+	 */
+	protected function date_picker_range( $which ) {
 
 		$date_from = isset( $_GET['date_from'] ) ? $_GET['date_from'] : '';
 		$date_to   = isset( $_GET['date_to'] ) ? $_GET['date_to'] : '';
+		?>
 
-		echo '<input class="datepicker date-from" type="text" name="date_from" value="' . esc_attr( $date_from ) . '" />';
-		echo '<input class="datepicker date-to" type="text" name="date_to" value="' . esc_attr( $date_to ) . '" />';
+		<label for="date-from-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date from:' ); ?></label>
+		<input id="date-from-<?php echo esc_attr( $which ); ?>" class="datepicker date-from"
+		       type="text" name="date_from" value="<?php echo esc_attr( $date_from ); ?>" />
+		<label for="date-to-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date to:' ); ?></label>
+		<input id="date-to-<?php echo esc_attr( $which ); ?>" class="datepicker date-to"
+		       type="text" name="date_to" value="<?php echo esc_attr( $date_to ); ?>" />
+
+		<?php
 	}
 
 	/**
