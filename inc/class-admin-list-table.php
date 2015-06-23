@@ -178,16 +178,16 @@ class List_Table extends \WP_Posts_List_Table {
 	 */
 	protected function date_picker_range( $which ) {
 
-		$date_from = isset( $_GET['date_from'] ) ? $_GET['date_from'] : '';
-		$date_to   = isset( $_GET['date_to'] ) ? $_GET['date_to'] : '';
+		$date_from = isset( $_GET['date-from'] ) ? $_GET['date-from'] : '';
+		$date_to   = isset( $_GET['date-to'] ) ? $_GET['date-to'] : '';
 		?>
 
 		<label for="date-from-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date from:' ); ?></label>
 		<input id="date-from-<?php echo esc_attr( $which ); ?>" class="datepicker date-from"
-		       type="text" name="date_from" value="<?php echo esc_attr( $date_from ); ?>" />
+		       type="text" name="date-from" value="<?php echo esc_attr( $date_from ); ?>" />
 		<label for="date-to-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date to:' ); ?></label>
 		<input id="date-to-<?php echo esc_attr( $which ); ?>" class="datepicker date-to"
-		       type="text" name="date_to" value="<?php echo esc_attr( $date_to ); ?>" />
+		       type="text" name="date-to" value="<?php echo esc_attr( $date_to ); ?>" />
 
 		<?php
 	}
