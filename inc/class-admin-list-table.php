@@ -56,10 +56,10 @@ class List_Table extends \WP_Posts_List_Table {
 			$q->set( 'author', '' );
 			$q->set( 'date_query', array(
 				array(
-					'after'  => $date['from'],
-					'before' => $date['to'],
+					'after'     => $date['from'],
+					'before'    => $date['to'],
+					'inclusive' => true,
 				),
-				'inclusive' => true
 			) );
 		} );
 
