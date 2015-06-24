@@ -40,6 +40,6 @@ $list_table->prepare_items();
 			<input type="submit" name="submit" id="submit" class="button button-primary" value="Save Changes">
 		</p>
 	</form>
-	
+
 	<?php $list_table->display(); ?>
 </div>

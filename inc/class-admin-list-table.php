@@ -45,15 +45,27 @@ class List_Table extends \WP_Posts_List_Table {
 		/**
 		 * Remove the permissions check for the query as we want anyone who can view
 		 * this page to be able to view the static mirrors on it.
+		 *
+		 * Add in date filtering based on pickers
 		 */
 		add_action( 'parse_query', function( $q ) {
+
+			$date = $this->date_posted();
+
 			$q->set( 'perm', '' );
 			$q->set( 'author', '' );
+			$q->set( 'date_query', array(
+				array(
+					'after' => $date['from'],
+					'before' => $date['to'],
+				),
+				inclusive => true
+			));
 		});
 
 		$avail_post_stati = wp_edit_posts_query( array(
 			'post_status' => 'private',
-			'post_type' => 'static-mirror'
+			'post_type'   => 'static-mirror',
 		) );
 
 		$this->hierarchical_display = ( is_post_type_hierarchical( $this->screen->post_type ) && 'menu_order title' == $wp_query->query['orderby'] );
@@ -175,27 +187,40 @@ class List_Table extends \WP_Posts_List_Table {
 	 */
 	protected function date_picker_range( $which ) {
 
-		$date_from = isset( $_GET['date-from'] ) ? $_GET['date-from'] : '';
-		$date_to   = isset( $_GET['date-to'] ) ? $_GET['date-to'] : '';
+		$date = $this->date_posted();
 		?>
-
-		<form method="get" action="<?php echo esc_url( add_query_arg( 'page', $_GET['page'], 'tools.php' ) ); ?>">
+		<h3>Filter by date range</h3>
+		<form method="post" action="<?php echo esc_url( add_query_arg( 'page', $_GET['page'], 'tools.php' ) ); ?>">
 			<input type="hidden" name="action" value="filter-date-range" />
 			<?php wp_nonce_field( 'static-mirror.filter-date-range' ); ?>
 
 			<label for="date-from-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date from:' ); ?></label>
 			<input id="date-from-<?php echo esc_attr( $which ); ?>" class="datepicker date-from"
-			       type="text" name="date-from" value="<?php echo esc_attr( $date_from ); ?>" />
+			       type="text" name="date-from" value="<?php echo esc_attr( $date['from'] ); ?>" />
 			<label for="date-to-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date to:' ); ?></label>
 			<input id="date-to-<?php echo esc_attr( $which ); ?>" class="datepicker date-to"
-			       type="text" name="date-to" value="<?php echo esc_attr( $date_to ); ?>" />
+			       type="text" name="date-to" value="<?php echo esc_attr( $date['to'] ); ?>" />
 
 			<?php
 			submit_button( __( 'Filter' ), 'button', 'filter', false );
+			submit_button( __( 'Clear Filter' ), 'button', 'clear-filter', false );
 			?>
 		</form>
 
 		<?php
+	}
+
+	/**
+	 * Grab dates picked from filter and sets logic based on whether the form was to filter or clear the filter.
+	 *
+	 * @return array dates selected from and to.
+	 */
+	protected function date_posted() {
+
+		$date['from'] = isset( $_POST['date-from'] ) && isset( $_POST['filter'] ) && ! isset( $_POST['clear-filter'] ) ? $_POST['date-from'] : '';
+		$date['to']   = isset( $_POST['date-to'] ) && isset( $_POST['filter'] ) && ! isset( $_POST['clear-filter'] ) ? $_POST['date-to'] : '';
+
+		return $date;
 	}
 
 	/**
