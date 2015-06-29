@@ -10,6 +10,7 @@ $list_table = new List_Table( array(
 	'screen' => $current_screen
 ) );
 
+$list_table->run();
 $list_table->prepare_items();
 
 ?>

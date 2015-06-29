@@ -12,10 +12,7 @@ class List_Table extends \WP_Posts_List_Table {
 	 *
 	 * @param array $args An associative array of arguments.
 	 */
-	public function __construct( $args = array() ) {
-
-		// Call WP_Posts_List_Table constructor
-		parent::__construct();
+	public function run() {
 
 		/**
 		 * Add admin JS and CSS
@@ -49,6 +46,15 @@ class List_Table extends \WP_Posts_List_Table {
 		 * Add in date filtering based on pickers
 		 */
 		add_action( 'parse_query', function( $q ) {
+
+			if (
+				! (
+					isset( $_GET['static-mirror-nonce'] )
+					&& wp_verify_nonce( $_GET['static-mirror-nonce'], 'static-mirror.filter-date-range' )
+				)
+			) {
+				return;
+			}
 
 			$date = $this->date_posted();
 
@@ -189,10 +195,15 @@ class List_Table extends \WP_Posts_List_Table {
 
 		$date = $this->date_posted();
 		?>
-		<h3>Filter by date range</h3>
-		<form method="post" action="<?php echo esc_url( add_query_arg( 'page', $_GET['page'], 'tools.php' ) ); ?>">
+
+		<form method="get" action="<?php echo esc_url( admin_url( 'tools.php?page=static-mirror-tools-page' ) ); ?>">
+
+			<h3>Filter by date range</h3>
+
+			<input type="hidden" name="page" value="static-mirror-tools-page" />
 			<input type="hidden" name="action" value="filter-date-range" />
-			<?php wp_nonce_field( 'static-mirror.filter-date-range' ); ?>
+
+			<?php wp_nonce_field( 'static-mirror.filter-date-range', 'static-mirror-nonce' ); ?>
 
 			<label for="date-from-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date from:' ); ?></label>
 			<input id="date-from-<?php echo esc_attr( $which ); ?>" class="datepicker date-from"
@@ -217,8 +228,8 @@ class List_Table extends \WP_Posts_List_Table {
 	 */
 	protected function date_posted() {
 
-		$date['from'] = isset( $_POST['date-from'] ) && isset( $_POST['filter'] ) && ! isset( $_POST['clear-filter'] ) ? $_POST['date-from'] : '';
-		$date['to']   = isset( $_POST['date-to'] ) && isset( $_POST['filter'] ) && ! isset( $_POST['clear-filter'] ) ? $_POST['date-to'] : '';
+		$date['from'] = isset( $_GET['date-from'] ) && isset( $_GET['filter'] ) && ! isset( $_GET['clear-filter'] ) ? $_GET['date-from'] : '';
+		$date['to']   = isset( $_GET['date-to'] ) && isset( $_GET['filter'] ) && ! isset( $_GET['clear-filter'] ) ? $_GET['date-to'] : '';
 
 		return $date;
 	}
