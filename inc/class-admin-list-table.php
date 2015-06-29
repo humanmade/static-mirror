@@ -62,12 +62,12 @@ class List_Table extends \WP_Posts_List_Table {
 			$q->set( 'author', '' );
 			$q->set( 'date_query', array(
 				array(
-					'after' => $date['from'],
-					'before' => $date['to'],
+					'after'     => $date['from'],
+					'before'    => $date['to'],
+					'inclusive' => true,
 				),
-				inclusive => true
-			));
-		});
+			) );
+		} );
 
 		$avail_post_stati = wp_edit_posts_query( array(
 			'post_status' => 'private',
@@ -196,11 +196,9 @@ class List_Table extends \WP_Posts_List_Table {
 		$date = $this->date_posted();
 		?>
 
-		<form method="get" action="<?php echo esc_url( admin_url( 'tools.php?page=static-mirror-tools-page' ) ); ?>">
+		<h3><?php esc_html_e( 'Filter by date range' ); ?></h3>
+		<form method="post" action="<?php echo esc_url( add_query_arg( 'page', $_GET['page'], 'tools.php' ) ); ?>">
 
-			<h3>Filter by date range</h3>
-
-			<input type="hidden" name="page" value="static-mirror-tools-page" />
 			<input type="hidden" name="action" value="filter-date-range" />
 
 			<?php wp_nonce_field( 'static-mirror.filter-date-range', 'static-mirror-nonce' ); ?>
@@ -222,9 +220,10 @@ class List_Table extends \WP_Posts_List_Table {
 	}
 
 	/**
-	 * Grab dates picked from filter and sets logic based on whether the form was to filter or clear the filter.
+	 * Grab dates picked from filter and sets logic based on whether the form
+	 * was to filter or clear the filter.
 	 *
-	 * @return array dates selected from and to.
+	 * @return array Dates selected from and to
 	 */
 	protected function date_posted() {
 

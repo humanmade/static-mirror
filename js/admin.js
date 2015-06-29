@@ -2,13 +2,12 @@
  * Bind datepicker JS to the fields
  */
 (function($) {
-    $(function() {
-		// Check to make sure the input box exists
+	$(function() {
+		// Check to make sure the date picker input boxes exist
 		if( 0 < $( '.datepicker' ).length ) {
-
-            var pickerOpts = { dateFormat:"yy-mm-dd" };
-
-            $( '.datepicker' ).datepicker( pickerOpts );
+			$( '.datepicker' ).datepicker({
+				dateFormat: "yy-mm-dd"
+			});
 		}
 	});
 }(jQuery));
