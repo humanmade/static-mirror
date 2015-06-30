@@ -8,26 +8,10 @@ require_once ABSPATH . 'wp-admin/includes/class-wp-posts-list-table.php';
 class List_Table extends \WP_Posts_List_Table {
 
 	/**
-	 * Constructor
+	 * Enqueue the scripts and styles for the list table
 	 *
-	 * @param array $args An associative array of arguments.
 	 */
-	public function run() {
-
-		/**
-		 * Add admin JS and CSS
-		 *
-		 * NOTE: Don't use add_action( 'admin_print_styles', ... ) because
-		 * class is instasialised in the templates/admin-tools-page.php
-		 * and all header/setup actions have already been run
-		 */
-		$this->register_admin_js_css();
-	}
-
-	/**
-	 * Register admin JS and CSS
-	 */
-	public function register_admin_js_css() {
+	static public function enqueue_scripts() {
 		// JS
 		wp_enqueue_script( 'jquery-ui-datepicker' );
 		wp_enqueue_script( 'static-mirror-jquery-date-picker', SM_PLUGIN_URL . 'js/admin.js' );
@@ -47,12 +31,7 @@ class List_Table extends \WP_Posts_List_Table {
 		 */
 		add_action( 'parse_query', function( $q ) {
 
-			if (
-				! (
-					isset( $_GET['static-mirror-nonce'] )
-					&& wp_verify_nonce( $_GET['static-mirror-nonce'], 'static-mirror.filter-date-range' )
-				)
-			) {
+			if ( ! ( isset( $_GET['date-from'] ) ) ) {
 				return;
 			}
 
@@ -197,11 +176,9 @@ class List_Table extends \WP_Posts_List_Table {
 		?>
 
 		<h3><?php esc_html_e( 'Filter by date range' ); ?></h3>
-		<form method="post" action="<?php echo esc_url( add_query_arg( 'page', $_GET['page'], 'tools.php' ) ); ?>">
+		<form method="get">
 
 			<input type="hidden" name="action" value="filter-date-range" />
-
-			<?php wp_nonce_field( 'static-mirror.filter-date-range', 'static-mirror-nonce' ); ?>
 
 			<label for="date-from-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date from:' ); ?></label>
 			<input id="date-from-<?php echo esc_attr( $which ); ?>" class="datepicker date-from"
@@ -209,6 +186,7 @@ class List_Table extends \WP_Posts_List_Table {
 			<label for="date-to-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date to:' ); ?></label>
 			<input id="date-to-<?php echo esc_attr( $which ); ?>" class="datepicker date-to"
 			       type="text" name="date-to" value="<?php echo esc_attr( $date['to'] ); ?>" />
+			<input type="hidden" name="page" value="<?php echo esc_attr( $_GET['page'] ) ?>" />
 
 			<?php
 			submit_button( __( 'Filter' ), 'button', 'filter', false );

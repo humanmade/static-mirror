@@ -10,7 +10,7 @@ $list_table = new List_Table( array(
 	'screen' => $current_screen
 ) );
 
-$list_table->run();
+$list_table->enqueue_scripts();
 $list_table->prepare_items();
 
 ?>
