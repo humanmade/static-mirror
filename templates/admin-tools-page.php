@@ -10,6 +10,7 @@ $list_table = new List_Table( array(
 	'screen' => $current_screen
 ) );
 
+$list_table->enqueue_scripts();
 $list_table->prepare_items();
 
 ?>
@@ -40,6 +41,6 @@ $list_table->prepare_items();
 			<input type="submit" name="submit" id="submit" class="button button-primary" value="Save Changes">
 		</p>
 	</form>
-	
+
 	<?php $list_table->display(); ?>
 </div>

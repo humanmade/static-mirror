@@ -7,21 +7,50 @@ require_once ABSPATH . 'wp-admin/includes/class-wp-posts-list-table.php';
 
 class List_Table extends \WP_Posts_List_Table {
 
+	/**
+	 * Enqueue the scripts and styles for the list table
+	 *
+	 */
+	static public function enqueue_scripts() {
+		// JS
+		wp_enqueue_script( 'jquery-ui-datepicker' );
+		wp_enqueue_script( 'static-mirror-jquery-date-picker', SM_PLUGIN_URL . 'js/admin.js' );
+
+		// CSS
+		wp_enqueue_style( 'jquery-ui-datepicker', 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/themes/smoothness/jquery-ui.css' );
+	}
+
 	public function prepare_items() {
 		global $avail_post_stati, $wp_query, $per_page, $mode;
 
 		/**
 		 * Remove the permissions check for the query as we want anyone who can view
 		 * this page to be able to view the static mirrors on it.
+		 *
+		 * Add in date filtering based on pickers
 		 */
 		add_action( 'parse_query', function( $q ) {
+
+			if ( ! ( isset( $_GET['date-from'] ) ) ) {
+				return;
+			}
+
+			$date = $this->date_posted();
+
 			$q->set( 'perm', '' );
 			$q->set( 'author', '' );
-		});
+			$q->set( 'date_query', array(
+				array(
+					'after'     => $date['from'],
+					'before'    => $date['to'],
+					'inclusive' => true,
+				),
+			) );
+		} );
 
 		$avail_post_stati = wp_edit_posts_query( array(
 			'post_status' => 'private',
-			'post_type' => 'static-mirror'
+			'post_type'   => 'static-mirror',
 		) );
 
 		$this->hierarchical_display = ( is_post_type_hierarchical( $this->screen->post_type ) && 'menu_order title' == $wp_query->query['orderby'] );
@@ -63,7 +92,7 @@ class List_Table extends \WP_Posts_List_Table {
 	 */
 	public function display() {
 		$singular = $this->_args['singular'];
-
+		$this->display_tablenav( 'top' );
 		?>
 		<table class="wp-list-table <?php echo implode( ' ', $this->get_table_classes() ); ?>">
 			<thead>
@@ -98,6 +127,95 @@ class List_Table extends \WP_Posts_List_Table {
 	 *                      This is designated as optional for backwards-compatibility.
 	 */
 	protected function bulk_actions( $which = '' ) {
+	}
+
+	/**
+	 * Don't display a view switcher
+	 *
+	 * @param string $current_mode
+	 */
+	protected function view_switcher( $current_mode ) {
+	}
+
+	/**
+	 * Add extra markup in the toolbars before or after the table list
+	 * Date filters, to show Static Mirrors for a specific period of time
+	 *
+	 * Add to both top and bottom of the table list
+	 *
+	 * @param string $which Identifies the place to add a toolbar
+	 *                      before (top) or after (bottom) the table list
+	 */
+	protected function extra_tablenav( $which ) {
+		?>
+		<div class="alignleft actions">
+			<?php
+			if ( ! is_singular() ) {
+
+				// Date picker fields for the date range filtering
+				$this->date_picker_range( $which );
+
+				/**
+				 * Fires before the Filter button on the Posts and Pages list tables.
+				 *
+				 * The Filter button allows sorting by date and/or category on the
+				 * Posts list table, and sorting by date on the Pages list table.
+				 *
+				 * @since 2.1.0
+				 */
+				do_action( 'restrict_manage_posts' );
+			}
+			?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Displays date range input fields
+	 *
+	 * @param string $which Identifies the place the date range fields
+	 *                      are being displayed at: before (top) or after (bottom)
+	 *                      the table list
+	 */
+	protected function date_picker_range( $which ) {
+
+		$date = $this->date_posted();
+		?>
+
+		<h3><?php esc_html_e( 'Filter by date range' ); ?></h3>
+		<form method="get">
+
+			<input type="hidden" name="action" value="filter-date-range" />
+
+			<label for="date-from-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date from:' ); ?></label>
+			<input id="date-from-<?php echo esc_attr( $which ); ?>" class="datepicker date-from"
+			       type="text" name="date-from" value="<?php echo esc_attr( $date['from'] ); ?>" />
+			<label for="date-to-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date to:' ); ?></label>
+			<input id="date-to-<?php echo esc_attr( $which ); ?>" class="datepicker date-to"
+			       type="text" name="date-to" value="<?php echo esc_attr( $date['to'] ); ?>" />
+			<input type="hidden" name="page" value="<?php echo esc_attr( $_GET['page'] ) ?>" />
+
+			<?php
+			submit_button( __( 'Filter' ), 'button', 'filter', false );
+			submit_button( __( 'Clear Filter' ), 'button', 'clear-filter', false );
+			?>
+		</form>
+
+		<?php
+	}
+
+	/**
+	 * Grab dates picked from filter and sets logic based on whether the form
+	 * was to filter or clear the filter.
+	 *
+	 * @return array Dates selected from and to
+	 */
+	protected function date_posted() {
+
+		$date['from'] = isset( $_GET['date-from'] ) && isset( $_GET['filter'] ) && ! isset( $_GET['clear-filter'] ) ? $_GET['date-from'] : '';
+		$date['to']   = isset( $_GET['date-to'] ) && isset( $_GET['filter'] ) && ! isset( $_GET['clear-filter'] ) ? $_GET['date-to'] : '';
+
+		return $date;
 	}
 
 	/**

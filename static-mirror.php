@@ -19,6 +19,11 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	WP_CLI::add_command( 'static-mirror', 'Static_Mirror\\WP_CLI_Command' );
 }
 
+// Plugin URL
+if ( ! defined( 'SM_PLUGIN_URL' ) ) {
+	define( 'SM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+}
+
 add_action( 'init', array( Static_Mirror\Plugin::get_instance(), 'setup_trigger_hooks' ), 999 );
 add_action( 'init', array( Static_Mirror\Plugin::get_instance(), 'setup_capabilities' ) );
 add_action( 'admin_menu', array( Static_Mirror\Admin::get_instance(), 'add_tools_page' ), 1 );
