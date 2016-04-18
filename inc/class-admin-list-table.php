@@ -252,7 +252,7 @@ class List_Table extends \WP_Posts_List_Table {
 
 		$wp_upload_dir = wp_upload_dir();
 
-		$permalink = dirname( $wp_upload_dir['baseurl'] ) . get_post_meta( $post->ID, '_dir_rel', true ) . 'index.html';
+		$permalink = apply_filters( 'static_mirror_baseurl', dirname( $wp_upload_dir['baseurl'] ) ) . get_post_meta( $post->ID, '_dir_rel', true ) . 'index.html';
 		?>
 		<strong><a href="<?php echo esc_url( $permalink ) ?>"><?php echo esc_html( $post->post_title ) ?></a></strong>
 
@@ -263,7 +263,7 @@ class List_Table extends \WP_Posts_List_Table {
 
 		echo $this->get_changelog_html( get_post_meta( $post->ID, '_changelog', true ) );
 		$wp_upload_dir = wp_upload_dir();
-		$permalink = dirname( $wp_upload_dir['baseurl'] ) . get_post_meta( $post->ID, '_dir_rel', true ) . 'index.html';
+		$permalink = apply_filters( 'static_mirror_baseurl', dirname( $wp_upload_dir['baseurl'] ) ) . get_post_meta( $post->ID, '_dir_rel', true ) . 'index.html';
 		echo $this->row_actions( array(
 			'view' => '<a href="' . esc_url( $permalink ) . '">View</a>'
 		) );

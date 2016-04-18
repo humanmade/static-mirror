@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace Static_Mirror;
 
@@ -22,10 +22,10 @@ class Plugin {
 	/**
 	 * Get the Base URLs that will be mirrored
 	 *
-	 * As all urls on a site may not be cross linked, crawling the site might not 
-	 * discover all pages on the site, so we can pass multiple bases to 
+	 * As all urls on a site may not be cross linked, crawling the site might not
+	 * discover all pages on the site, so we can pass multiple bases to
 	 * catch everything
-	 * 
+	 *
 	 * @return Array
 	 */
 	public function get_base_urls() {
@@ -34,7 +34,7 @@ class Plugin {
 
 	/**
 	 * Set the base URLs that will be mirrored
-	 * 
+	 *
 	 * @param Array $urls
 	 */
 	public function set_base_urls( Array $urls ) {
@@ -43,7 +43,7 @@ class Plugin {
 
 	/**
 	 * Get the destination where the site mirrors will be stored
-	 * 
+	 *
 	 * @return string
 	 */
 	public function get_destination_directory() {
@@ -54,35 +54,37 @@ class Plugin {
 
 	/**
 	 * Get a list of previously created mirrors
-	 * 
+	 *
 	 * @return Array
 	 */
 	public function get_mirrors() {
 
 		$mirrors = get_posts( array(
-			'post_type' => 'static-mirror',
-			'showposts' => -1,
-			'post_status' => 'private'
+			'post_type'   => 'static-mirror',
+			'showposts'   => -1,
+			'post_status' => 'private',
 		) );
 
 		$wp_upload_dir = wp_upload_dir();
+		$basurl = apply_filters( 'static_mirror_baseurl', dirname( $wp_upload_dir['baseurl'] ) );
+		return array_map( function( $post ) use ( $basurl ) {
 
-		return array_map( function( $post ) use ( $wp_upload_dir ) {
+			$url = $basurl . get_post_meta( $post->ID, '_dir_rel', true );
 			return array(
-				'dir' => get_post_meta( $post->ID, '_dir', true ),
-				'date' => strtotime( $post->post_date_gmt ),
+				'dir'       => get_post_meta( $post->ID, '_dir', true ),
+				'date'      => strtotime( $post->post_date_gmt ),
 				'changelog' => get_post_meta( $post->ID, '_changelog', true ),
-				'url' => dirname( $wp_upload_dir['baseurl'] ) . get_post_meta( $post->ID, '_dir_rel', true )
+				'url'       => $url,
 			);
 		}, $mirrors );
 	}
 
 	/**
-	 * Setup the hooks that will be used to trigger a mirror. 
+	 * Setup the hooks that will be used to trigger a mirror.
 	 *
-	 * A hook may be something like publish_post, which will "queue" a mirror to be made 
+	 * A hook may be something like publish_post, which will "queue" a mirror to be made
 	 * at the end of the script.
-	 * 
+	 *
 	 */
 	public function setup_trigger_hooks() {
 
@@ -116,11 +118,11 @@ class Plugin {
 				return;
 			}
 
-			$this->queue_mirror_url( sprintf( 
+			$this->queue_mirror_url( sprintf(
 				'The %s %s was %s.',
 				$post_type_object->labels->singular_name,
 				$post->post_title,
-				$update ? 'updated' : 'published' 
+				$update ? 'updated' : 'published'
 			), get_permalink( $post_id ), $post_id );
 
 		}, 10, 3 );
@@ -151,7 +153,7 @@ class Plugin {
 				return;
 			}
 
-			$this->queue_mirror_url( sprintf( 
+			$this->queue_mirror_url( sprintf(
 				'The %s %s was assigned the %s %s.',
 				$post_type_object->labels->singular_name,
 				$post->post_title,
@@ -200,7 +202,7 @@ class Plugin {
 		if ( $key ) {
 			$this->urls[$key] = $url;
 		} else {
-			$this->urls[] = $url;	
+			$this->urls[] = $url;
 		}
 
 		if ( ! $this->queued ) {
@@ -228,18 +230,18 @@ class Plugin {
 
 		delete_option( 'static_mirror_last_error' );
 	}
-	
+
 	/**
 	 * Queue a mirror of the site
 	 *
 	 * The mirrorer will be run on the end of the script execution to allow other
-	 * code to queue mirrors too. 
+	 * code to queue mirrors too.
 	 *
 	 * @param String $changelog A changelog of what happened to cause a mirror.
 	 */
 	public function queue_complete_mirror( $changelog, $when = 60 ) {
 
-		// we queue one to happen in 5 minutes, if one is already queued, we push that back 
+		// we queue one to happen in 5 minutes, if one is already queued, we push that back
 		$next_queue_changelog   = get_option( 'static_mirror_next_changelog', array() );
 		$next_queue_changelog[] = array( 'date' => time(), 'text' => $changelog );
 
@@ -262,7 +264,7 @@ class Plugin {
 		$status = $this->complete_mirror( $changelog );
 
 		delete_option( 'static_mirror_in_progress' );
-		
+
 		if ( is_wp_error( $status ) ) {
 			update_option( 'static_mirror_last_error', $status->get_error_message() );
 			trigger_error( $status->get_error_code() . ': ' . $status->get_error_message(), E_USER_WARNING );
@@ -288,7 +290,7 @@ class Plugin {
 		/**
 		 * Running mirror() probably took quite a while, so lets
 		 * throw away the internal object cache, as calling
-		 * *_option() will push stale data to the object cache and 
+		 * *_option() will push stale data to the object cache and
 		 * cause all sorts of nasty prodblems.
 		 *
 		 * @see https://core.trac.wordpress.org/ticket/25623
