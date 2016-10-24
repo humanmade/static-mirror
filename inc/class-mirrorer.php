@@ -24,7 +24,7 @@ class Mirrorer {
 
 		wp_mkdir_p( $destination );
 
-		$mirror_cookies = apply_filters( 'static_mirror_crawler_cookies', array( 'wp_static_mirror', 1 ) );
+		$mirror_cookies = apply_filters( 'static_mirror_crawler_cookies', array( 'wp_static_mirror' => 1 ) );
 		$resource_domains = apply_filters( 'static_mirror_resource_domains', array() );
 
 		$cookie_string = implode( ';', array_map( function( $v, $k ) {
