@@ -276,7 +276,7 @@ class Plugin {
 
 	public function complete_mirror( Array $changelog ) {
 
-		$this->mirror( $changelog, $this->get_base_urls(), true );
+		return $this->mirror( $changelog, $this->get_base_urls(), true );
 	}
 
 	public function mirror( Array $changelog, Array $urls, $recursive = false ) {
