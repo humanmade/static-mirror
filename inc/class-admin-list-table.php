@@ -243,7 +243,7 @@ class List_Table extends \WP_Posts_List_Table {
 			'info' => 'Snapshot',
 		);
 
-		$this->_column_headers = array( $columns, array(), array() );
+		$this->_column_headers = array( $columns, array(), array(), '' );
 
 		return $this->_column_headers;
 	}
