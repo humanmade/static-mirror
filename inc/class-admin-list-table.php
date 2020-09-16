@@ -360,7 +360,7 @@ class List_Table extends \WP_Posts_List_Table {
 
 			if ( 'cb' == $column_name ) {
 				echo '<th scope="row" class="check-column">';
-				echo $this->column_cb( $item );
+				$this->column_cb( $item );
 				echo '</th>';
 			}
 			elseif ( method_exists( $this, 'column_' . $column_name ) ) {
@@ -370,7 +370,7 @@ class List_Table extends \WP_Posts_List_Table {
 			}
 			else {
 				echo "<td $attributes>";
-				echo $this->column_default( $item, $column_name );
+				$this->column_default( $item, $column_name );
 				echo "</td>";
 			}
 		}
