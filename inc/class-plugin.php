@@ -2,17 +2,24 @@
 
 namespace Static_Mirror;
 
+use DirectoryIterator;
+use Exception;
+use WP_Query;
+use WP_CLI;
+
 class Plugin {
 
 	private static $instance;
 	private $queued = false;
+	private $cron_queued = false;
 	private $changelog = array();
 
-
+	/**
+	 * @return Plugin
+	 */
 	public static function get_instance() {
 
 		if ( ! self::$instance ) {
-			$class = get_called_class();
 			self::$instance = new Plugin();
 		}
 
@@ -55,15 +62,20 @@ class Plugin {
 	/**
 	 * Get a list of previously created mirrors
 	 *
+	 * @param array $args Arguments to pass to `get_posts()`.
 	 * @return Array
 	 */
-	public function get_mirrors() {
+	public function get_mirrors( array $args = [] ) {
 
-		$mirrors = get_posts( array(
-			'post_type'   => 'static-mirror',
-			'showposts'   => -1,
-			'post_status' => 'private',
-		) );
+		$args = array_merge(
+			array(
+				'post_type'   => 'static-mirror',
+				'showposts'   => -1,
+				'post_status' => 'private',
+			),
+			$args
+		);
+		$mirrors = get_posts( $args );
 
 		$wp_upload_dir = wp_upload_dir();
 		$basurl = apply_filters( 'static_mirror_baseurl', dirname( $wp_upload_dir['baseurl'] ) );
@@ -77,6 +89,13 @@ class Plugin {
 				'url'       => $url,
 			);
 		}, $mirrors );
+	}
+
+	/**
+	 * Get the default timestamp for scheduled tasks.
+	 */
+	public function get_daily_schedule_time() {
+		return apply_filters( 'static_mirror_daily_schedule_time', strtotime( 'today 11:59pm' ) );
 	}
 
 	/**
@@ -96,7 +115,11 @@ class Plugin {
 		}
 
 		if ( ! wp_next_scheduled( 'static_mirror_create_mirror' ) ) {
-			wp_schedule_event( apply_filters( 'static_mirror_daily_schedule_time', strtotime( 'today 11:59pm' ) ), 'daily', 'static_mirror_create_mirror' );
+			wp_schedule_event( $this->get_daily_schedule_time(), 'daily', 'static_mirror_create_mirror' );
+		}
+
+		if ( ! wp_next_scheduled( 'static_mirror_delete_expired_mirrors' ) ) {
+			wp_schedule_event( $this->get_daily_schedule_time(), 'daily', 'static_mirror_delete_expired_mirrors' );
 		}
 
 		// don't trigger the hooks if the request is from a static mirrir happening
@@ -118,12 +141,15 @@ class Plugin {
 				return;
 			}
 
-			$this->queue_mirror_url( sprintf(
-				'The %s %s was %s.',
-				$post_type_object->labels->singular_name,
-				$post->post_title,
-				$update ? 'updated' : 'published'
-			), get_permalink( $post_id ), $post_id );
+			$this->schedule_mirror_url_cron(
+				sprintf(
+					'The %s %s was %s.',
+					$post_type_object->labels->singular_name,
+					$post->post_title,
+					$update ? 'updated' : 'published'
+				),
+				get_permalink( $post_id )
+			);
 
 		}, 10, 3 );
 
@@ -153,14 +179,16 @@ class Plugin {
 				return;
 			}
 
-			$this->queue_mirror_url( sprintf(
-				'The %s %s was assigned the %s %s.',
-				$post_type_object->labels->singular_name,
-				$post->post_title,
-				$taxonomy_object->labels->name,
-				implode( ', ' , $terms )
-			), get_permalink( $object_id ), $object_id );
-
+			$this->schedule_mirror_url_cron(
+				sprintf(
+					'The %s %s was assigned the %s %s.',
+					$post_type_object->labels->singular_name,
+					$post->post_title,
+					$taxonomy_object->labels->name,
+					implode( ', ' , $terms )
+				),
+				get_permalink( $object_id )
+			);
 		}, 10, 6 );
 	}
 
@@ -209,6 +237,36 @@ class Plugin {
 			add_action( 'shutdown', array( $this, 'mirror_on_shutdown' ), 11 );
 			$this->queued = true;
 		}
+	}
+
+	/**
+	 * Add a cron job to mirror a single URL.
+	 *
+	 * @param string $changelog Message to add to the changelog.
+	 * @param string $url       URL to mirror.
+	 */
+	public function schedule_mirror_url_cron( $changelog, $url ) {
+		if ( $this->cron_queued ) {
+			return;
+		}
+
+		$this->cron_queued = true;
+
+		wp_schedule_single_event(
+			time(),
+			'static_mirror_create_mirror_for_url',
+			[
+				[
+					[
+						'date' => time(),
+						'text' => $changelog,
+					],
+				],
+				[
+					$url,
+				],
+			]
+		);
 	}
 
 	public function mirror_on_shutdown() {
@@ -285,7 +343,7 @@ class Plugin {
 		$start_time = time();
 
 		$destination = $this->get_destination_directory() . date( '/Y/m/j/H-i-s/' );
-		$status = $mirrorer->create( $urls, $destination, $recursive );
+		$mirrorer->create( $urls, $destination, $recursive );
 
 		/**
 		 * Running mirror() probably took quite a while, so lets
@@ -297,10 +355,6 @@ class Plugin {
 		 */
 		global $wp_object_cache;
 		$wp_object_cache->cache = array();
-
-		if ( is_wp_error( $status ) ) {
-			return $status;
-		}
 
 		// make an index page
 		$files = array_map( function( $url ) {
@@ -330,5 +384,119 @@ class Plugin {
 		update_post_meta( $post_id, 'mirror_end', $end_time );
 
 		return $uploads_dir['basedir'] . '/mirrors';
+	}
+
+	/**
+	 * Handle deleting expired mirrors.
+	 *
+	 * Works via the CLI and WP Cron.
+	 *
+	 * @param array $args Optional CLI arguments.
+	 * @return void
+	 */
+	public function delete_expired_mirrors( $args = [] ) {
+
+		$delete_before = date( 'Y-m-d', time() - SM_TTL );
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			WP_CLI::line( "Deleting mirrors created before $delete_before" );
+		}
+
+		$args = array(
+			'post_type' => 'static-mirror',
+			'showposts' => -1, // If it times out it can continue from where it left off.
+			'post_status' => 'private',
+			'date_query' => array(
+				// Before TTL with a safety buffer.
+				'before' => $delete_before,
+			),
+			'order' => 'ASC',
+			'order_by' => 'date',
+		);
+
+		$mirrors = new WP_Query( $args );
+		$errors = [];
+
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			// Show progress.
+			WP_CLI::line( "Found {$mirrors->found_posts} expired mirrors to delete." );
+			// Don't prompt if running via cavalcade, WP CLI is also in play.
+			if ( ! defined( 'DOING_CRON' ) || ! DOING_CRON ) {
+				WP_CLI::confirm( 'Are you sure you want to delete the expired mirrors?', $args );
+			}
+			$progress = WP_CLI\Utils\make_progress_bar( 'Deleting mirrors', $mirrors->found_posts );
+		}
+
+		// The mirrors directory is at the same level as uploads in S3 / wp-content directory.
+		$base_dir = untrailingslashit( dirname( wp_upload_dir()['basedir'] ) );
+
+		foreach ( $mirrors->posts as $mirror ) {
+			// Avoid any potential for removing non local files e.g. after a db import
+			// without a search replace for S3 URLs.
+			$dir_rel = get_post_meta( $mirror->ID, '_dir_rel', true );
+			$dir = $base_dir . $dir_rel;
+
+			// Delete the directory if it exists.
+			$deleted = empty( scandir( $dir ) );
+			// We use scandir as standard file checks and methods behave differently with
+			// S3 due to the stream wrapper and S3's lack of real directories.
+			if ( ! $deleted ) {
+				$deleted = self::rrmdir( $dir );
+			}
+
+			if ( ! $deleted ) {
+				trigger_error( 'Failed to delete mirror directory: ' . $dir, E_USER_WARNING );
+				$errors[] = [ 'id' => $mirror->ID, 'dir' => $dir, 'type' => 'dir' ];
+			}
+
+			// Delete the post if the directory was deleted or already missing.
+			if ( $deleted ) {
+				$deleted_post = wp_delete_post( $mirror->ID, true );
+				if ( ! $deleted_post ) {
+					trigger_error( 'Failed to delete mirror post: ' . $mirror->ID, E_USER_WARNING );
+					$errors[] = [ 'id' => $mirror->ID, 'dir' => $dir, 'type' => 'post' ];
+				}
+			}
+
+			if ( defined( 'WP_CLI' ) && WP_CLI ) {
+				$progress->tick();
+			}
+		}
+
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			$progress->finish();
+			if ( ! empty( $errors ) ) {
+				WP_CLI::error_multi_line( array_map( function ( $error ) {
+					return "Failed to delete mirror {$error['type']} with ID {$error['id']} at {$error['dir']}.";
+				}, $errors ) );
+			}
+		}
+	}
+
+	/**
+	 * Recursively delete a directory.
+	 *
+	 * @param string $path Path to directory.
+	 * @return bool
+	 */
+	public static function rrmdir( string $path ) : bool {
+		try {
+			$iterator = new DirectoryIterator( $path );
+			foreach ( $iterator as $fileinfo ) {
+				if ( $fileinfo->isDot() ) {
+					continue;
+				}
+				if ( $fileinfo->isDir() && self::rrmdir( $fileinfo->getPathname() ) ) {
+					rmdir( $fileinfo->getPathname() );
+				}
+				if( $fileinfo->isFile() ) {
+					unlink( $fileinfo->getPathname() );
+				}
+			}
+		} catch ( Exception $e ){
+			trigger_error( $e->getMessage(), E_USER_WARNING );
+			return false;
+		}
+
+		return true;
 	}
 }

@@ -2,23 +2,23 @@
 
 namespace Static_Mirror;
 
+use Exception;
 use WP_Error;
 
 class Mirrorer {
 
 	/**
 	 * Create a static mirror of the site by given urls
-	 * 
+	 *
 	 * @param  Array  $urls
 	 * @param  String $destination
 	 * @param  bool   Whether to make the mirror recursivly crawl pages
-	 * @return WP_Error|null
+	 * @throws Exception
+	 * @return void
 	 */
-	public static function create( Array $urls, $destination, $recursive ) {
+	public function create( Array $urls, $destination, $recursive ) {
 
-		if ( ! static::check_dependancies() ) {
-			return new WP_Error( 'dependancies-not-met', 'You do not have the necessary dependancies to run a mirror.' );
-		}
+		static::check_dependancies();
 
 		$temp_destination = sys_get_temp_dir() . '/' . 'static-mirror-' . rand( 0,99999 );
 
@@ -36,28 +36,57 @@ class Mirrorer {
 			$allowed_domains = $resource_domains;
 			$allowed_domains[] = parse_url( $url )['host'];
 
-			$cmd = sprintf( 
-				'wget --user-agent="%s" -nc -p -k %s -erobots=off --restrict-file-names=windows --html-extension --content-on-error --header "Cookie: %s" -H -D%s -P %s %s 2>&1',
-				'WordPress/Static-Mirror; ' . get_bloginfo( 'url' ),
-				$recursive ? '-r' : '',
-				$cookie_string,
-				implode( $allowed_domains, ',' ),
-				escapeshellarg( $temp_destination ),
+			// Wget args. Broken into an array for better readability.
+			$args = array(
+				sprintf( '--user-agent="%s"', 'WordPress/Static-Mirror; ' . get_bloginfo( 'url' ) ),
+				'--no-clobber', // Prevent multiple versions of files, don't download a file if already exists.
+				'--page-requisites', // Download all necessary files.
+				'--convert-links', // Rewrite links so the downloaded version is functional and independent of original.
+				'--backup-converted', // Keep copy of file prior to converting links as this is mangling image srccset.
+				sprintf( '%s', $recursive ? '--recursive' : '' ),
+				'-erobots=off', // Ignore robots.
+				'--restrict-file-names=windows',
+				sprintf(
+					'--reject-regex "%s"',
+					implode(
+						'|',
+						[
+							'.+\/feed\/?$',
+							'.+\/wp-json\/?(.+)?$',
+						]
+					)
+				),
+				'--html-extension',
+				'--content-on-error',
+				'--trust-server-names', // Prevent duplicate files for redirected pages.
+				sprintf( '--header "Cookie: %s"', $cookie_string ),
+				'--span-hosts',
+				sprintf( '--domains="%s"', implode( ',', $allowed_domains ) ), // Given span hosts, restrict to defined domains.
+				sprintf( '--directory-prefix=%s', escapeshellarg( $temp_destination ) ),
+			);
+
+			// Allow bypassing cert check for local.
+			if ( defined( 'SM_NO_CHECK_CERT' ) && SM_NO_CHECK_CERT ) {
+				$args[] = '--no-check-certificate';
+			}
+
+			$cmd = sprintf(
+				'wget %s %s 2>&1',
+				implode( ' ', $args ),
 				escapeshellarg( esc_url_raw( $url ) )
 			);
 
 			$data = shell_exec( $cmd );
 
-			// we can infer the command fialed if hte temp dir does not exist
+			// we can infer the command failed if the temp dir does not exist.
 			if ( ! is_dir( $temp_destination ) ) {
-
-				return new WP_Error( 'static-mirrir.create.wget-command-error', 'wget command failed to return any data (cmd: ' . $cmd . ', data: ' . $data . ')' );
+				throw new Exception( 'wget command failed to return any data (cmd: ' . $cmd . ', data: ' . $data . ')' );
 			}
 
 		}
 
 		static::move_directory( untrailingslashit( $temp_destination ), untrailingslashit( $destination ) );
-		
+
 	}
 
 	/**
@@ -70,11 +99,11 @@ class Mirrorer {
 	public static function move_directory( $source, $dest ) {
 
 		$sourceHandle = opendir( $source );
-	 
+
 		if ( ! $sourceHandle ) {
 			return false;
 		}
-	 
+
 		while ( $file = readdir( $sourceHandle ) ) {
 			if ( $file == '.' || $file == '..' ) {
 				continue;
@@ -109,52 +138,48 @@ class Mirrorer {
 			}
 
 		}
-	   
+
 		return true;
 	}
 
 	/**
 	 * Check if we have all the needed dependancies for the mirroring
-	 * @return bool
+	 * @throws Exception
+	 * @return void
 	 */
 	public static function check_dependancies() {
 
-		if ( ! static::is_shell_exec_available() ) {
-			return false;
-		}
+		static::is_shell_exec_available();
 
 		if ( ! is_null( shell_exec( 'hash wget 2>&1' ) ) ) {
-			return false; 
+			throw new Exception( 'wget is not available.' );
 		}
 
-		return true;
 	}
 
 	/**
 	 * Check whether shell_exec has been disabled.
 	 *
-	 * @return bool
+	 * @throws Exception
+	 * @return void
 	 */
 	private static function is_shell_exec_available() {
 
 		// Are we in Safe Mode
 		if ( self::is_safe_mode_active() )
-			return false;
+			throw new Exception( 'Safe mode is active.' );
 
 		// Is shell_exec or escapeshellcmd or escapeshellarg disabled?
 		if ( array_intersect( array( 'shell_exec', 'escapeshellarg', 'escapeshellcmd' ), array_map( 'trim', explode( ',', @ini_get( 'disable_functions' ) ) ) ) )
-			return false;
+			throw new Exception( 'Shell exec is disabled via disable_functions.' );
 
 		// Functions can also be disabled via suhosin
 		if ( array_intersect( array( 'shell_exec', 'escapeshellarg', 'escapeshellcmd' ), array_map( 'trim', explode( ',', @ini_get( 'suhosin.executor.func.blacklist' ) ) ) ) )
-			return false;
+			throw new Exception( 'Shell exec is disabled via Suhosin.' );
 
 		// Can we issue a simple echo command?
 		if ( ! @shell_exec( 'echo backupwordpress' ) )
-			return false;
-
-		return true;
-
+			throw new Exception( 'Shell exec is not functional.' );
 	}
 
 	/**
