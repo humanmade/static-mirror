@@ -12,6 +12,7 @@ require_once dirname( __FILE__ ) . '/inc/class-plugin.php';
 require_once dirname( __FILE__ ) . '/inc/class-mirrorer.php';
 require_once dirname( __FILE__ ) . '/inc/class-admin.php';
 require_once dirname( __FILE__ ) . '/inc/class-admin-list-table.php';
+require_once dirname( __FILE__ ) . '/inc/class-s3.php';
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	require_once dirname( __FILE__ ) . '/inc/class-wp-cli-command.php';

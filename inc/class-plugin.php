@@ -441,7 +441,12 @@ class Plugin {
 			// We use scandir as standard file checks and methods behave differently with
 			// S3 due to the stream wrapper and S3's lack of real directories.
 			if ( ! $deleted ) {
-				$deleted = self::rrmdir( $dir );
+				if ( S3::is_supported() ) {
+					$s3 = new S3();
+					$deleted = $s3->rrmdir( $dir_rel );
+				} else {
+					$deleted = self::rrmdir( $dir );
+				}
 			}
 
 			if ( ! $deleted ) {
