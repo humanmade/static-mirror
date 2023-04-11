@@ -411,6 +411,7 @@ class Plugin {
 			),
 			'order' => 'ASC',
 			'order_by' => 'date',
+			'fields' => 'ids',
 		);
 
 		$mirrors = new WP_Query( $args );
@@ -429,10 +430,10 @@ class Plugin {
 		// The mirrors directory is at the same level as uploads in S3 / wp-content directory.
 		$base_dir = untrailingslashit( dirname( wp_upload_dir()['basedir'] ) );
 
-		foreach ( $mirrors->posts as $mirror ) {
+		foreach ( $mirrors->posts as $mirror_id ) {
 			// Avoid any potential for removing non local files e.g. after a db import
 			// without a search replace for S3 URLs.
-			$dir_rel = get_post_meta( $mirror->ID, '_dir_rel', true );
+			$dir_rel = get_post_meta( $mirror_id, '_dir_rel', true );
 			$dir = $base_dir . $dir_rel;
 
 			// Delete the directory if it exists.
@@ -445,15 +446,15 @@ class Plugin {
 
 			if ( ! $deleted ) {
 				trigger_error( 'Failed to delete mirror directory: ' . $dir, E_USER_WARNING );
-				$errors[] = [ 'id' => $mirror->ID, 'dir' => $dir, 'type' => 'dir' ];
+				$errors[] = [ 'id' => $mirror_id, 'dir' => $dir, 'type' => 'dir' ];
 			}
 
 			// Delete the post if the directory was deleted or already missing.
 			if ( $deleted ) {
-				$deleted_post = wp_delete_post( $mirror->ID, true );
+				$deleted_post = wp_delete_post( $mirror_id, true );
 				if ( ! $deleted_post ) {
-					trigger_error( 'Failed to delete mirror post: ' . $mirror->ID, E_USER_WARNING );
-					$errors[] = [ 'id' => $mirror->ID, 'dir' => $dir, 'type' => 'post' ];
+					trigger_error( 'Failed to delete mirror post: ' . $mirror_id, E_USER_WARNING );
+					$errors[] = [ 'id' => $mirror_id, 'dir' => $dir, 'type' => 'post' ];
 				}
 			}
 
