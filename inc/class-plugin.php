@@ -401,9 +401,11 @@ class Plugin {
 			WP_CLI::line( "Deleting mirrors created before $delete_before" );
 		}
 
+		$doing_cron = defined( 'DOING_CRON' ) && DOING_CRON;
+
 		$args = array(
 			'post_type' => 'static-mirror',
-			'showposts' => -1, // If it times out it can continue from where it left off.
+			'showposts' => $doing_cron ? 400 : -1, // Set a high limit for cron jobs, run for everything on a CLI invocation.
 			'post_status' => 'private',
 			'date_query' => array(
 				// Before TTL with a safety buffer.
@@ -421,7 +423,7 @@ class Plugin {
 			// Show progress.
 			WP_CLI::line( "Found {$mirrors->found_posts} expired mirrors to delete." );
 			// Don't prompt if running via cavalcade, WP CLI is also in play.
-			if ( ! defined( 'DOING_CRON' ) || ! DOING_CRON ) {
+			if ( ! $doing_cron ) {
 				WP_CLI::confirm( 'Are you sure you want to delete the expired mirrors?', $args );
 			}
 			$progress = WP_CLI\Utils\make_progress_bar( 'Deleting mirrors', $mirrors->found_posts );
@@ -429,6 +431,8 @@ class Plugin {
 
 		// The mirrors directory is at the same level as uploads in S3 / wp-content directory.
 		$base_dir = untrailingslashit( dirname( wp_upload_dir()['basedir'] ) );
+
+		$processed = 0;
 
 		foreach ( $mirrors->posts as $mirror_id ) {
 			// Avoid any potential for removing non local files e.g. after a db import
@@ -465,6 +469,13 @@ class Plugin {
 
 			if ( defined( 'WP_CLI' ) && WP_CLI ) {
 				$progress->tick();
+			}
+
+			$processed++;
+
+			// Clean the cache to reduce memory usage every 100 posts.
+			if ( function_exists( 'wp_clear_object_cache' ) && $processed % 100 === 0 ) {
+				wp_clear_object_cache();
 			}
 		}
 
