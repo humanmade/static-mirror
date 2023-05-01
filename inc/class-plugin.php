@@ -438,6 +438,14 @@ class Plugin {
 			// Avoid any potential for removing non local files e.g. after a db import
 			// without a search replace for S3 URLs.
 			$dir_rel = get_post_meta( $mirror_id, '_dir_rel', true );
+
+			// Check dir_rel is a valid relative path, an empty path could wipe out the entire bucket!
+			if ( ! preg_match( '#/mirrors/\d{4}/\d{2}/\d{1,2}/\d{2}-\d{2}-\d{2}/?#', $dir_rel ) ) {
+				trigger_error( 'Invalid mirror directory: ' . $dir_rel, E_USER_WARNING );
+				$errors[] = [ 'id' => $mirror_id, 'dir' => $dir_rel, 'type' => 'dir' ];
+				continue;
+			}
+
 			$dir = $base_dir . $dir_rel;
 
 			// Delete the directory if it exists.
