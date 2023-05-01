@@ -7,12 +7,50 @@ require_once ABSPATH . 'wp-admin/includes/class-wp-posts-list-table.php';
 
 class List_Table extends \WP_Posts_List_Table {
 
+	/**
+	 * Enqueue the scripts and styles for the list table
+	 *
+	 */
+	static public function enqueue_scripts() {
+		// JS
+		wp_enqueue_script( 'jquery-ui-datepicker' );
+		wp_enqueue_script( 'static-mirror-jquery-date-picker', SM_PLUGIN_URL . 'js/admin.js' );
+
+		// CSS
+		wp_enqueue_style( 'jquery-ui-datepicker', 'https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/themes/smoothness/jquery-ui.css' );
+	}
+
 	public function prepare_items() {
 		global $avail_post_stati, $wp_query, $per_page, $mode;
 
+		/**
+		 * Remove the permissions check for the query as we want anyone who can view
+		 * this page to be able to view the static mirrors on it.
+		 *
+		 * Add in date filtering based on pickers
+		 */
+		add_action( 'parse_query', function( $q ) {
+
+			if ( ! ( isset( $_GET['date-from'] ) ) ) {
+				return;
+			}
+
+			$date = $this->date_posted();
+
+			$q->set( 'perm', '' );
+			$q->set( 'author', '' );
+			$q->set( 'date_query', array(
+				array(
+					'after'     => $date['from'],
+					'before'    => $date['to'],
+					'inclusive' => true,
+				),
+			) );
+		} );
+
 		$avail_post_stati = wp_edit_posts_query( array(
 			'post_status' => 'private',
-			'post_type' => 'static-mirror'
+			'post_type'   => 'static-mirror',
 		) );
 
 		$this->hierarchical_display = ( is_post_type_hierarchical( $this->screen->post_type ) && 'menu_order title' == $wp_query->query['orderby'] );
@@ -37,8 +75,6 @@ class List_Table extends \WP_Posts_List_Table {
 			$mode = get_user_setting ( 'posts_list_mode', 'list' );
 		}
 
-		$this->is_trash = isset( $_REQUEST['post_status'] ) && $_REQUEST['post_status'] == 'trash';
-
 		$this->set_pagination_args( array(
 			'total_items' => $total_items,
 			'total_pages' => $total_pages,
@@ -54,7 +90,7 @@ class List_Table extends \WP_Posts_List_Table {
 	 */
 	public function display() {
 		$singular = $this->_args['singular'];
-
+		$this->display_tablenav( 'top' );
 		?>
 		<table class="wp-list-table <?php echo implode( ' ', $this->get_table_classes() ); ?>">
 			<thead>
@@ -73,6 +109,7 @@ class List_Table extends \WP_Posts_List_Table {
 				if ( $singular ) {
 					echo " data-wp-lists='list:$singular'";
 				} ?>>
+				<?php $this->display_in_progress_row() ?>
 				<?php $this->display_rows_or_placeholder(); ?>
 			</tbody>
 		</table>
@@ -80,8 +117,103 @@ class List_Table extends \WP_Posts_List_Table {
 		$this->display_tablenav( 'bottom' );
 	}
 
-	public function bulk_actions() {
+	/**
+	 * Don't display the bulk actions dropdown for Static Mirrow
+	 * as this functionality is not supported
+	 *
+	 * @param string $which The location of the bulk actions: 'top' or 'bottom'.
+	 *                      This is designated as optional for backwards-compatibility.
+	 */
+	protected function bulk_actions( $which = '' ) {
+	}
 
+	/**
+	 * Don't display a view switcher
+	 *
+	 * @param string $current_mode
+	 */
+	protected function view_switcher( $current_mode ) {
+	}
+
+	/**
+	 * Add extra markup in the toolbars before or after the table list
+	 * Date filters, to show Static Mirrors for a specific period of time
+	 *
+	 * Add to both top and bottom of the table list
+	 *
+	 * @param string $which Identifies the place to add a toolbar
+	 *                      before (top) or after (bottom) the table list
+	 */
+	protected function extra_tablenav( $which ) {
+		?>
+		<div class="alignleft actions">
+			<?php
+			if ( ! is_singular() ) {
+
+				// Date picker fields for the date range filtering
+				$this->date_picker_range( $which );
+
+				/**
+				 * Fires before the Filter button on the Posts and Pages list tables.
+				 *
+				 * The Filter button allows sorting by date and/or category on the
+				 * Posts list table, and sorting by date on the Pages list table.
+				 *
+				 * @since 2.1.0
+				 */
+				do_action( 'restrict_manage_posts' );
+			}
+			?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Displays date range input fields
+	 *
+	 * @param string $which Identifies the place the date range fields
+	 *                      are being displayed at: before (top) or after (bottom)
+	 *                      the table list
+	 */
+	protected function date_picker_range( $which ) {
+
+		$date = $this->date_posted();
+		?>
+
+		<h3><?php esc_html_e( 'Filter by date range' ); ?></h3>
+		<form method="get">
+
+			<input type="hidden" name="action" value="filter-date-range" />
+
+			<label for="date-from-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date from:' ); ?></label>
+			<input id="date-from-<?php echo esc_attr( $which ); ?>" class="datepicker date-from"
+			       type="text" name="date-from" value="<?php echo esc_attr( $date['from'] ); ?>" />
+			<label for="date-to-<?php echo esc_attr( $which ); ?>"><?php esc_html_e( 'Date to:' ); ?></label>
+			<input id="date-to-<?php echo esc_attr( $which ); ?>" class="datepicker date-to"
+			       type="text" name="date-to" value="<?php echo esc_attr( $date['to'] ); ?>" />
+			<input type="hidden" name="page" value="<?php echo esc_attr( $_GET['page'] ) ?>" />
+
+			<?php
+			submit_button( __( 'Filter' ), 'button', 'filter', false );
+			submit_button( __( 'Clear Filter' ), 'button', 'clear-filter', false );
+			?>
+		</form>
+
+		<?php
+	}
+
+	/**
+	 * Grab dates picked from filter and sets logic based on whether the form
+	 * was to filter or clear the filter.
+	 *
+	 * @return array Dates selected from and to
+	 */
+	protected function date_posted() {
+
+		$date['from'] = isset( $_GET['date-from'] ) && isset( $_GET['filter'] ) && ! isset( $_GET['clear-filter'] ) ? $_GET['date-from'] : '';
+		$date['to']   = isset( $_GET['date-to'] ) && isset( $_GET['filter'] ) && ! isset( $_GET['clear-filter'] ) ? $_GET['date-to'] : '';
+
+		return $date;
 	}
 
 	/**
@@ -104,13 +236,12 @@ class List_Table extends \WP_Posts_List_Table {
 	 */
 	public function get_column_info() {
 
-		$columns = array( 
-			'info' => 'Snapshot',
+		$columns = array(
 			'changelog' => 'Changelog',
-			'date' => 'Date'
+			'info' => 'Snapshot',
 		);
 
-		$this->_column_headers = array( $columns, array(), array() );
+		$this->_column_headers = array( $columns, array(), array(), '' );
 
 		return $this->_column_headers;
 	}
@@ -119,35 +250,21 @@ class List_Table extends \WP_Posts_List_Table {
 
 		$wp_upload_dir = wp_upload_dir();
 
-		$permalink = $wp_upload_dir['baseurl'] . get_post_meta( $post->ID, '_dir_rel', true ) . 'index.html';
+		$permalink = apply_filters( 'static_mirror_baseurl', dirname( $wp_upload_dir['baseurl'] ) ) . get_post_meta( $post->ID, '_dir_rel', true ) . 'index.html';
 		?>
 		<strong><a href="<?php echo esc_url( $permalink ) ?>"><?php echo esc_html( $post->post_title ) ?></a></strong>
+
 		<?php
-		echo $this->row_actions( array(
-			'view' => '<a href="' . esc_url( $permalink ) . '">View</a>'
-		) );
-	}
-
-	protected function column_date( $post ) {
-
-		$t_time = get_the_time( __( 'Y/m/d g:i:s A' ) );
-		$m_time = $post->post_date;
-		$time = get_post_time( 'G', true, $post );
-
-		$time_diff = time() - $time;
-
-		if ( $time_diff > 0 && $time_diff < DAY_IN_SECONDS )
-			$h_time = sprintf( __( '%s ago' ), human_time_diff( $time ) );
-		else
-			$h_time = mysql2date( __( 'Y/m/d' ), $m_time );
-
-		/** This filter is documented in wp-admin/includes/class-wp-posts-list-table.php */
-		echo '<abbr title="' . $t_time . '">' . $h_time . '</abbr>';
 	}
 
 	protected function column_changelog( $post ) {
 
-		echo implode( ', ', array_map( 'esc_html', get_post_meta( $post->ID, '_changelog', true ) ) );
+		echo $this->get_changelog_html( get_post_meta( $post->ID, '_changelog', true ), $post );
+		$wp_upload_dir = wp_upload_dir();
+		$permalink = apply_filters( 'static_mirror_baseurl', dirname( $wp_upload_dir['baseurl'] ) ) . get_post_meta( $post->ID, '_dir_rel', true ) . 'index.html';
+		echo $this->row_actions( array(
+			'view' => '<a href="' . esc_url( $permalink ) . '">View</a>'
+		) );
 	}
 
 	/**
@@ -165,6 +282,66 @@ class List_Table extends \WP_Posts_List_Table {
 		echo '<tr' . $row_class . '>';
 		$this->single_row_columns( $item );
 		echo '</tr>';
+	}
+
+	public function display_in_progress_row() {
+
+		if ( ! get_option( 'static_mirror_next_changelog' ) && ! get_option( 'static_mirror_in_progress' ) ) {
+			return;
+		}
+
+		list( $columns, $hidden ) = $this->get_column_info();
+
+		$message = '';
+
+		if ( $changelog = get_option( 'static_mirror_next_changelog' ) ) {
+			$next = wp_next_scheduled( 'static_mirror_create_mirror' );
+
+			if ( $next < time() ) {
+				$message .= sprintf( "Static Mirror is queued but in the past (%d seconds ago), please make sure WP Cron is functioning.", time() - $next );
+			} else {
+				$message .= "Static Mirror queued in " . ( $next - time() ) . ' seconds. ';
+			}
+
+			$message .= $this->get_changelog_html( $changelog );
+		}
+
+		if ( $in_progress = get_option( 'static_mirror_in_progress' ) ) {
+
+			$message .= "Static Mirror is running. Started " . ( time() - $in_progress['time'] ) . ' seconds ago. ';
+
+			$message .= $this->get_changelog_html( $in_progress['changelog'] );
+		}
+		?>
+		<tr style="background-color: #999; text-align: center;">
+			<td style="color: #fff;" colspan="<?php echo count( $columns ) ?>">
+				<?php echo $message ?>
+			</td>
+		</tr>
+		<?php
+	}
+
+	protected function get_changelog_html( $changelog, \WP_Post $post = null ) {
+
+		$message = '<ul style="text-align: left">';
+		foreach ( $changelog as $change ) {
+			if ( ! is_array( $change ) ) {
+				// A few very old mirrors only contain the page URL as a text string in the changelog.
+				$change = [
+					'date' => ( $post ? strtotime( $post->post_date_gmt ) : time() ),
+					'text' => $change,
+				];
+			}
+
+			$message .= sprintf(
+				'<li>%s - %s</li>',
+				esc_html( date_i18n( "g:ia", $change['date'], true ) ),
+				esc_html( $change['text'] )
+			);
+		}
+		$message .= '</ul>';
+
+		return $message;
 	}
 
 	/**
@@ -189,7 +366,7 @@ class List_Table extends \WP_Posts_List_Table {
 
 			if ( 'cb' == $column_name ) {
 				echo '<th scope="row" class="check-column">';
-				echo $this->column_cb( $item );
+				$this->column_cb( $item );
 				echo '</th>';
 			}
 			elseif ( method_exists( $this, 'column_' . $column_name ) ) {
@@ -199,7 +376,7 @@ class List_Table extends \WP_Posts_List_Table {
 			}
 			else {
 				echo "<td $attributes>";
-				echo $this->column_default( $item, $column_name );
+				$this->column_default( $item, $column_name );
 				echo "</td>";
 			}
 		}
