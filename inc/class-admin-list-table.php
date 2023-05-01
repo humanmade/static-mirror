@@ -75,8 +75,6 @@ class List_Table extends \WP_Posts_List_Table {
 			$mode = get_user_setting ( 'posts_list_mode', 'list' );
 		}
 
-		$this->is_trash = isset( $_REQUEST['post_status'] ) && $_REQUEST['post_status'] == 'trash';
-
 		$this->set_pagination_args( array(
 			'total_items' => $total_items,
 			'total_pages' => $total_pages,
@@ -261,7 +259,7 @@ class List_Table extends \WP_Posts_List_Table {
 
 	protected function column_changelog( $post ) {
 
-		echo $this->get_changelog_html( get_post_meta( $post->ID, '_changelog', true ) );
+		echo $this->get_changelog_html( get_post_meta( $post->ID, '_changelog', true ), $post );
 		$wp_upload_dir = wp_upload_dir();
 		$permalink = apply_filters( 'static_mirror_baseurl', dirname( $wp_upload_dir['baseurl'] ) ) . get_post_meta( $post->ID, '_dir_rel', true ) . 'index.html';
 		echo $this->row_actions( array(
@@ -323,10 +321,18 @@ class List_Table extends \WP_Posts_List_Table {
 		<?php
 	}
 
-	protected function get_changelog_html( $changelog ) {
+	protected function get_changelog_html( $changelog, \WP_Post $post = null ) {
 
 		$message = '<ul style="text-align: left">';
 		foreach ( $changelog as $change ) {
+			if ( ! is_array( $change ) ) {
+				// A few very old mirrors only contain the page URL as a text string in the changelog.
+				$change = [
+					'date' => ( $post ? strtotime( $post->post_date_gmt ) : time() ),
+					'text' => $change,
+				];
+			}
+
 			$message .= sprintf(
 				'<li>%s - %s</li>',
 				esc_html( date_i18n( "g:ia", $change['date'], true ) ),
